@@ -1,0 +1,23 @@
+.custom-cursor {
+    cursor: url('path/to/advanced-cursor.png'), auto;
+}
+
+.advanced-planet-cursor {
+    cursor: url('path/to/planet-cursor.png'), auto;
+    animation: spin 1s infinite linear;
+}
+
+.simple-cursor {
+    cursor: url('path/to/simple-cursor.png'), auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@media (pointer: fine) {
+    .custom-cursor {
+        cursor: url('path/to/fine-pointer-cursor.png'), auto;
+    }
+}
