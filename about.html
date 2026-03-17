@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About — Dcasel Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Syne:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+@media(pointer:fine){*{cursor:none;}}
+:root{--bone:#f4f1ec;--off:#eae6de;--parchm:#d9d4c9;--mid:#a09b90;--muted:#6e6860;--ink:#0e0d0b;--dark:#141210;--charcoal:#1c1a17;--ember:#d44c27;--ease:cubic-bezier(0.22,1,0.36,1);--spring:cubic-bezier(0.34,1.56,0.64,1);--px:20px;--sy:80px;}
+@media(min-width:480px){:root{--px:28px;}}
+@media(min-width:768px){:root{--px:44px;--sy:110px;}}
+@media(min-width:1024px){:root{--px:64px;--sy:140px;}}
+@media(min-width:1280px){:root{--px:80px;--sy:160px;}}
+body{font-family:'Syne',sans-serif;background:var(--bone);color:var(--ink);overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+img{display:block;max-width:100%;height:auto;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+#cur3,#curTrail{display:none;position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
+@media(pointer:fine){#cur3{display:block;width:26px;height:26px;}#curTrail{display:block;width:48px;height:48px;border-radius:50%;border:1.5px solid rgba(14,13,11,.18);z-index:9998;}}
+.c3s{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.95) 0%,rgba(255,255,255,.4) 22%,var(--ink) 55%,rgba(0,0,0,.88) 100%);box-shadow:inset -3px -3px 8px rgba(0,0,0,.5),0 4px 16px rgba(14,13,11,.3);position:relative;transition:width .32s,height .32s;}
+.c3s::before{content:'';position:absolute;top:21%;left:24%;width:32%;height:22%;background:rgba(255,255,255,.55);border-radius:50%;transform:rotate(-35deg);filter:blur(2px);}
+#cur3.hov .c3s{width:52px;height:52px;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.9) 0%,rgba(255,255,255,.35) 22%,var(--ember) 55%,rgba(100,20,0,.88) 100%);}
+#prog{position:fixed;top:0;left:0;height:1px;width:100%;background:var(--ember);z-index:9999;transform:scaleX(0);transform-origin:left;}
+.noise{position:fixed;inset:0;pointer-events:none;z-index:8000;opacity:.022;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+nav{position:fixed;inset:0 0 auto;z-index:500;height:60px;padding:0 var(--px);display:flex;align-items:center;justify-content:space-between;transition:background .45s;}
+@media(min-width:768px){nav{height:68px;}}
+nav.stuck{background:rgba(244,241,236,.93);backdrop-filter:blur(20px) saturate(160%);border-bottom:1px solid rgba(14,13,11,.07);}
+.logo{font-family:'Cormorant Garamond',serif;font-size:1.45rem;font-weight:500;letter-spacing:.06em;color:var(--ink);}
+.logo em{font-style:normal;color:var(--ember);}
+.nav-links{display:none;align-items:center;gap:36px;}
+@media(min-width:900px){.nav-links{display:flex;}}
+.nav-item{position:relative;}
+.nav-link{font-size:.65rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);transition:color .2s;display:flex;align-items:center;gap:5px;}
+.nav-link:hover,.nav-link.active{color:var(--ink);}
+.nav-chevron{width:8px;height:8px;flex-shrink:0;transition:transform .25s;}
+.nav-item:hover .nav-chevron{transform:rotate(180deg);}
+.nav-drop{position:absolute;top:calc(100% + 18px);left:50%;transform:translateX(-50%) translateY(-8px);background:var(--bone);border:1px solid rgba(14,13,11,.08);border-radius:4px;padding:8px;min-width:180px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:0 16px 48px rgba(14,13,11,.1);}
+.nav-item:hover .nav-drop{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+.nav-drop a{display:block;font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:.6rem .85rem;border-radius:2px;transition:color .18s,background .18s;white-space:nowrap;}
+.nav-drop a:hover{color:var(--ink);background:var(--off);}
+.nav-drop a.active{color:var(--ember)!important;}
+.drop-div{height:1px;background:rgba(14,13,11,.07);margin:4px 8px;}
+.nav-cta{display:none;font-size:.64rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:.42rem 1.15rem;border-radius:100px;border:1px solid rgba(14,13,11,.2);transition:background .22s,color .22s;}
+.nav-cta:hover{background:var(--ink);color:var(--bone);}
+@media(min-width:900px){.nav-cta{display:block;}}
+.ham{display:flex;flex-direction:column;justify-content:center;gap:5px;background:none;border:none;padding:8px;margin-right:-8px;width:40px;height:40px;}
+.ham span{display:block;width:22px;height:1.5px;background:var(--ink);border-radius:1px;transition:transform .32s,opacity .22s;}
+.ham.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg);}
+.ham.open span:nth-child(2){opacity:0;}
+.ham.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg);}
+@media(min-width:900px){.ham{display:none;}}
+.mob{position:fixed;inset:0;z-index:490;background:var(--ink);display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;padding:0 var(--px) clamp(40px,8vw,64px);transform:translateY(-100%);transition:transform .65s var(--ease);pointer-events:none;}
+.mob.open{transform:translateY(0);pointer-events:auto;}
+.mob-links{display:flex;flex-direction:column;gap:0;margin-bottom:40px;width:100%;}
+.mob-links a{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,8.5vw,3.2rem);font-weight:300;font-style:italic;color:var(--bone);padding:11px 0;border-bottom:1px solid rgba(244,241,236,.07);opacity:0;transform:translateX(-18px);transition:opacity .48s var(--ease),transform .48s var(--ease);}
+.mob.open .mob-links a{opacity:1;transform:translateX(0);}
+.mob.open .mob-links a:nth-child(1){transition-delay:.07s;}
+.mob.open .mob-links a:nth-child(2){transition-delay:.13s;}
+.mob.open .mob-links a:nth-child(3){transition-delay:.19s;}
+.mob.open .mob-links a:nth-child(4){transition-delay:.25s;}
+.mob-links a:hover{color:var(--ember);}
+.mob-btn{display:flex;align-items:center;justify-content:center;width:100%;padding:.95rem;background:var(--ember);border-radius:100px;color:var(--bone);font-size:.76rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:0;transform:translateY(10px);transition:opacity .38s .36s,transform .38s .36s;}
+.mob.open .mob-btn{opacity:1;transform:translateY(0);}
+.rev{opacity:0;transform:translateY(24px);transition:opacity .85s var(--ease),transform .85s var(--ease);}
+.rev.vis{opacity:1;transform:none;}
+.d1{transition-delay:.1s;}.d2{transition-delay:.2s;}.d3{transition-delay:.3s;}.d4{transition-delay:.4s;}.d5{transition-delay:.5s;}
+.sec-tag{font-size:.58rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:10px;}
+.sec-tag::before{content:'';width:18px;height:1px;background:var(--parchm);flex-shrink:0;}
+.btn-p{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--bone);background:var(--ink);padding:.78rem 1.5rem;border-radius:100px;border:none;transition:transform .28s,box-shadow .28s;}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(14,13,11,.18);}
+.btn-p svg{width:11px;height:11px;stroke:var(--bone);fill:none;flex-shrink:0;}
+.btn-o{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);padding:.78rem 1.5rem;border-radius:100px;border:1px solid rgba(14,13,11,.18);transition:background .22s;}
+.btn-o:hover{background:var(--off);}
+
+/* STUDIO NAV STRIP */
+.studio-strip{padding:clamp(20px,3vw,32px) var(--px);background:var(--ink);display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.studio-strip-label{font-size:.56rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,241,236,.28);margin-right:6px;}
+.studio-chip{display:inline-flex;font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:.32rem 1rem;border-radius:100px;border:1px solid rgba(244,241,236,.14);color:rgba(244,241,236,.4);transition:background .22s,border-color .22s,color .22s;}
+.studio-chip:hover{border-color:rgba(244,241,236,.3);color:var(--bone);}
+.studio-chip.current{background:var(--ember);border-color:var(--ember);color:var(--bone);}
+
+/* ABOUT HERO */
+.ab-hero{min-height:92svh;background:var(--ink);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:0 var(--px) var(--sy);}
+.ab-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 72% 40%,rgba(212,76,39,.06) 0%,transparent 55%),radial-gradient(circle at 18% 75%,rgba(212,76,39,.04) 0%,transparent 45%);pointer-events:none;}
+.ab-grain{position:absolute;inset:0;pointer-events:none;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='ng'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23ng)'/%3E%3C/svg%3E");}
+.ab-bg-word{position:absolute;right:var(--px);bottom:0;font-family:'Cormorant Garamond',serif;font-size:clamp(100px,22vw,300px);font-weight:300;color:transparent;-webkit-text-stroke:1px rgba(244,241,236,.04);pointer-events:none;user-select:none;line-height:1;letter-spacing:-.04em;}
+.ab-breadcrumb{font-size:.56rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,236,.35);display:flex;align-items:center;gap:8px;margin-bottom:clamp(28px,4vw,44px);opacity:0;transform:translateY(12px);transition:opacity .7s .2s,transform .7s .2s;}
+.ab-breadcrumb.vis{opacity:1;transform:none;}
+.ab-breadcrumb a{color:rgba(244,241,236,.28);transition:color .2s;}
+.ab-breadcrumb a:hover{color:rgba(244,241,236,.7);}
+.ab-breadcrumb span.cur{color:var(--ember);}
+.ab-h1{font-family:'Cormorant Garamond',serif;font-size:clamp(52px,11vw,148px);font-weight:300;line-height:.86;letter-spacing:-.025em;overflow:hidden;}
+.ab-h1 .aline{display:block;color:var(--bone);opacity:0;transform:translateY(100%);transition:opacity .9s var(--ease),transform .9s var(--ease);}
+.ab-h1 .aline.vis{opacity:1;transform:none;}
+.ab-h1 .it{font-style:italic;}
+.ab-h1 .em{color:var(--ember);}
+.ab-hero-foot{padding-top:clamp(24px,3vw,40px);border-top:1px solid rgba(244,241,236,.1);display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between;opacity:0;transform:translateY(16px);transition:opacity .85s .9s,transform .85s .9s;}
+.ab-hero-foot.vis{opacity:1;transform:none;}
+.ab-tagline{font-size:.9rem;font-weight:500;line-height:1.82;color:rgba(244,241,236,.45);max-width:52ch;}
+.ab-badges{display:flex;gap:8px;flex-wrap:wrap;}
+.ab-badge{font-size:.52rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,236,.35);padding:.22rem .8rem;border:1px solid rgba(244,241,236,.1);border-radius:100px;}
+
+/* MANIFESTO */
+.manifesto{padding:var(--sy) var(--px);background:var(--bone);}
+.mani-grid{display:grid;grid-template-columns:1fr;gap:60px;}
+@media(min-width:860px){.mani-grid{grid-template-columns:1fr 1fr;gap:80px;align-items:start;}}
+.mani-heading{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,4.5vw,56px);font-weight:400;line-height:.92;letter-spacing:-.02em;margin-top:12px;}
+.mani-heading em{font-style:italic;color:var(--ember);}
+.mani-body{font-size:.86rem;font-weight:500;line-height:1.9;color:var(--muted);}
+.mani-body p+p{margin-top:16px;}
+.mani-quote{margin-top:32px;padding:28px 28px 28px 20px;border-left:3px solid var(--ember);background:var(--off);}
+.mani-quote p{font-family:'Cormorant Garamond',serif;font-size:clamp(1rem,1.8vw,1.35rem);font-style:italic;line-height:1.5;color:var(--ink);margin-bottom:10px;}
+.mani-quote cite{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ember);}
+
+/* STATS BAND */
+.stats-band{background:var(--off);border-top:1px solid rgba(14,13,11,.08);border-bottom:1px solid rgba(14,13,11,.08);}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);}
+@media(min-width:640px){.stats-grid{grid-template-columns:repeat(4,1fr);}}
+.stat-cell{padding:clamp(32px,5vw,56px) clamp(20px,3vw,40px);border-right:1px solid rgba(14,13,11,.08);position:relative;overflow:hidden;}
+.stat-cell:last-child{border-right:none;}
+@media(max-width:639px){.stat-cell:nth-child(2n){border-right:none;}.stat-cell:nth-child(n+3){border-top:1px solid rgba(14,13,11,.08);}}
+.stat-n{font-family:'Cormorant Garamond',serif;font-size:clamp(42px,7vw,80px);font-weight:300;line-height:.9;letter-spacing:-.03em;color:var(--ink);display:flex;align-items:baseline;gap:.06em;}
+.stat-plus{font-size:.45em;color:var(--ember);font-weight:400;}
+.stat-label{font-size:.66rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:12px;}
+
+/* FOUNDER */
+.founder{padding:var(--sy) var(--px);background:var(--ink);position:relative;overflow:hidden;}
+.founder::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 50%,rgba(212,76,39,.05) 0%,transparent 55%);pointer-events:none;}
+.founder-grid{display:grid;grid-template-columns:1fr;gap:clamp(48px,6vw,72px);}
+@media(min-width:860px){.founder-grid{grid-template-columns:1fr 1fr;gap:80px;align-items:start;}}
+.founder-label{font-size:.58rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,241,236,.32);display:flex;align-items:center;gap:10px;}
+.founder-label::before{content:'';width:18px;height:1px;background:rgba(244,241,236,.14);flex-shrink:0;}
+.founder-name{font-family:'Cormorant Garamond',serif;font-size:clamp(36px,6vw,72px);font-weight:300;color:var(--bone);line-height:.9;letter-spacing:-.02em;margin-top:12px;margin-bottom:4px;}
+.founder-role{font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ember);margin-bottom:32px;}
+.founder-body p{font-size:.86rem;font-weight:500;line-height:1.9;color:rgba(244,241,236,.42);margin-bottom:16px;}
+.founder-body p:last-child{margin-bottom:0;}
+.founder-quote{padding:28px 28px 28px 20px;border-left:3px solid var(--ember);background:rgba(244,241,236,.03);margin-top:28px;}
+.founder-quote p{font-family:'Cormorant Garamond',serif;font-size:clamp(1rem,1.6vw,1.2rem);font-style:italic;line-height:1.5;color:var(--bone);margin-bottom:8px;}
+.founder-quote cite{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ember);}
+.founder-right{}
+.founder-img-block{position:relative;aspect-ratio:3/4;overflow:hidden;background:var(--charcoal);}
+.founder-img-block img{width:100%;height:100%;object-fit:cover;filter:brightness(.75) grayscale(15%);transition:filter .8s;}
+.founder-img-block:hover img{filter:brightness(.85) grayscale(0%);}
+.founder-caption{display:flex;align-items:center;gap:14px;margin-top:20px;padding:16px 20px;background:rgba(244,241,236,.04);border:1px solid rgba(244,241,236,.08);}
+.founder-av{width:40px;height:40px;border-radius:50%;background:var(--ember);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--bone);flex-shrink:0;}
+.founder-cap-n{font-size:.8rem;font-weight:700;color:var(--bone);}
+.founder-cap-r{font-size:.6rem;color:rgba(244,241,236,.32);margin-top:2px;font-weight:500;}
+
+
+
+/* VALUES */
+.values{padding:var(--sy) var(--px);background:var(--charcoal);}
+.values-hd{margin-bottom:clamp(48px,6vw,72px);}
+.values-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,6vw,76px);font-weight:300;color:var(--bone);line-height:.9;letter-spacing:-.02em;margin-top:12px;}
+.values-title em{font-style:italic;color:var(--ember);}
+.values-grid{display:grid;grid-template-columns:1fr;gap:0;border-top:1px solid rgba(244,241,236,.07);}
+@media(min-width:768px){.values-grid{grid-template-columns:1fr 1fr;}}
+.val-item{padding:clamp(28px,4vw,44px) 0;border-bottom:1px solid rgba(244,241,236,.07);transition:padding-left .32s var(--ease);}
+@media(min-width:768px){.val-item{padding:clamp(28px,4vw,44px) clamp(20px,3vw,40px);border-right:1px solid rgba(244,241,236,.07);border-bottom:none;}.val-item:nth-child(n+3){border-top:1px solid rgba(244,241,236,.07);}.val-item:nth-child(2n){border-right:none;}}
+.val-item:hover{padding-left:12px;}
+@media(min-width:768px){.val-item:hover{padding-left:clamp(28px,3vw,48px);}}
+.val-n{font-size:.54rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,241,236,.2);margin-bottom:14px;}
+.val-title{font-family:'Cormorant Garamond',serif;font-size:clamp(22px,3vw,34px);font-weight:400;color:var(--bone);letter-spacing:-.01em;margin-bottom:10px;transition:color .28s;}
+.val-item:hover .val-title{color:var(--ember);}
+.val-body{font-size:.8rem;font-weight:500;line-height:1.82;color:rgba(244,241,236,.35);max-width:38ch;}
+
+/* TEAM */
+.team{padding:var(--sy) var(--px);background:var(--off);}
+.team-hd{margin-bottom:clamp(40px,5vw,64px);}
+.team-title{font-family:'Cormorant Garamond',serif;font-size:clamp(30px,5vw,60px);font-weight:400;line-height:.9;letter-spacing:-.02em;margin-top:12px;}
+.team-title em{font-style:italic;color:var(--muted);}
+.team-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;}
+@media(min-width:640px){.team-grid{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:1024px){.team-grid{grid-template-columns:repeat(4,1fr);}}
+.team-card{background:var(--bone);overflow:hidden;transition:transform .38s var(--ease);}
+.team-card:hover{transform:translateY(-4px);}
+.team-photo{aspect-ratio:3/4;overflow:hidden;background:var(--parchm);}
+.team-photo img{width:100%;height:100%;object-fit:cover;filter:grayscale(15%);transition:filter .6s,transform .8s;}
+.team-card:hover .team-photo img{filter:grayscale(0%);transform:scale(1.04);}
+.team-info{padding:18px 16px 16px;}
+.team-name{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:400;letter-spacing:-.01em;margin-bottom:4px;}
+.team-role{font-size:.58rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+
+/* CTA */
+.cta-band{padding:clamp(80px,12vw,140px) var(--px);background:var(--bone);text-align:center;position:relative;overflow:hidden;}
+.cta-band-bg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Cormorant Garamond',serif;font-size:clamp(80px,18vw,240px);font-weight:300;color:transparent;-webkit-text-stroke:1px rgba(14,13,11,.04);white-space:nowrap;pointer-events:none;user-select:none;}
+.cta-band-inner{position:relative;z-index:1;}
+.cta-band-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,6.5vw,88px);font-weight:300;line-height:.9;letter-spacing:-.025em;margin-top:18px;margin-bottom:18px;}
+.cta-band-title em{font-style:italic;color:var(--ember);}
+.cta-band-sub{font-size:.84rem;font-weight:500;line-height:1.85;color:var(--muted);max-width:46ch;margin:0 auto 36px;}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+
+/* FOOTER */
+footer{background:var(--ink);padding:clamp(60px,8vw,80px) var(--px) clamp(28px,4vw,40px);}
+.ft-g{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:clamp(48px,7vw,64px);}
+@media(min-width:960px){.ft-g{grid-template-columns:2fr 1fr 1fr 1fr;}}
+.ft-logo{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:400;color:var(--bone);display:block;margin-bottom:14px;}
+.ft-logo em{font-style:normal;color:var(--ember);}
+.ft-desc{font-size:.78rem;font-weight:500;line-height:1.78;color:rgba(244,241,236,.28);max-width:28ch;margin-bottom:22px;}
+.ft-socs{display:flex;gap:10px;}
+.ft-soc{width:34px;height:34px;border-radius:50%;border:1px solid rgba(244,241,236,.1);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:rgba(244,241,236,.3);transition:border-color .22s,color .22s;}
+.ft-soc:hover{border-color:var(--ember);color:var(--ember);}
+.ft-col h4{font-size:.56rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,241,236,.28);margin-bottom:18px;}
+.ft-col ul{list-style:none;display:flex;flex-direction:column;gap:9px;}
+.ft-col a{font-size:.76rem;font-weight:500;color:rgba(244,241,236,.38);transition:color .2s;}
+.ft-col a:hover{color:var(--bone);}
+.ft-bot{padding-top:22px;border-top:1px solid rgba(244,241,236,.07);display:flex;flex-direction:column;gap:6px;}
+@media(min-width:600px){.ft-bot{flex-direction:row;justify-content:space-between;align-items:center;}}
+.ft-copy,.ft-made{font-size:.68rem;font-weight:500;color:rgba(244,241,236,.18);}
+.ft-made em{font-style:normal;color:var(--ember);}
+
+/* ── NAV & HERO FIXES ── */
+:root{--nav-h:68px;}
+@media(max-width:767px){:root{--nav-h:60px;}}
+
+/* Fix submenu: bridge gap between link and dropdown so mouse doesn't lose hover */
+.nav-item::after{
+  content:'';position:absolute;
+  top:100%;left:0;right:0;
+  height:20px; /* bridges the gap */
+  background:transparent;
+}
+.nav-drop{
+  top:calc(100% + 1px); /* reduced gap, relies on ::after for bridge */
+}
+/* Ensure dropdown is above everything */
+.nav-item:hover .nav-drop{
+  pointer-events:auto;
+  z-index:600;
+}
+.nav-drop a{
+  pointer-events:auto;
+  cursor:pointer;
+}
+
+/* ── Hero spacing fix: always leave room for fixed nav ── */
+.pg-hero{padding-top:calc(var(--nav-h) + 24px);}
+#hero{padding-top:var(--nav-h);}
+.cs-hero{padding-top:var(--nav-h);}
+.post-layout{padding-top:0;}
+
+/* ── Fix TOC sidebar top offset in case-study ── */
+.post-toc{top:var(--nav-h) !important;height:calc(100vh - var(--nav-h)) !important;}
+
+/* ── "View" label: keep it but move it away from nav area ── */
+#curLbl{
+  position:fixed !important;
+  top:auto !important;
+  pointer-events:none;
+  z-index:9996;
+  font-size:.56rem;
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--ink);
+  background:var(--bone);
+  border:1px solid rgba(14,13,11,.1);
+  padding:.28rem .7rem;
+  border-radius:100px;
+  white-space:nowrap;
+  opacity:0;
+  transform:translate(-50%,14px);
+  transition:opacity .22s,transform .22s;
+}
+#curLbl.vis{opacity:1;transform:translate(-50%,18px);}
+
+</style>
+</head>
+<body>
+<div class="noise" aria-hidden="true"></div>
+<div id="prog" aria-hidden="true"></div>
+<div id="cur3" aria-hidden="true"><div class="c3s"></div></div>
+<div id="curTrail" aria-hidden="true"></div>
+
+<nav id="nav">
+  <a href="index.html" class="logo">DC<em>.</em>ASEL</a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="index.html#services" class="nav-link">Services
+        <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg>
+      </a>
+      <div class="nav-drop">
+        <a href="brand-identity.html">Brand Identity</a>
+        <a href="web-design.html">Web Design</a>
+        <a href="product-design.html">Product Design</a>
+        <a href="motion-design.html">Motion Design</a>
+        <a href="creative-direction.html">Creative Direction</a>
+      </div>
+    </div>
+    <a href="index.html#work" class="nav-link">Work</a>
+    <div class="nav-item">
+      <a href="about.html" class="nav-link active">Studio
+        <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg>
+      </a>
+      <div class="nav-drop">
+        <a href="about.html" class="active">About</a>
+        <div class="drop-div"></div>
+        <a href="process.html">Process</a>
+        <div class="drop-div"></div>
+        <a href="why-dcasel.html">Why Dcasel</a>
+      </div>
+    </div>
+  </div>
+  <a href="index.html#cta" class="nav-cta">Start a Project</a>
+  <button class="ham" id="hamBtn"><span></span><span></span><span></span></button>
+</nav>
+<div class="mob" id="mobMenu">
+  <nav class="mob-links">
+    <a href="index.html#services" class="mm">Services</a>
+    <a href="index.html#work" class="mm">Work</a>
+    <a href="about.html" class="mm">Studio</a>
+    <a href="index.html#cta" class="mm">Contact</a>
+  </nav>
+  <a href="index.html#cta" class="mob-btn mm">Start a Project →</a>
+</div>
+
+<!-- HERO -->
+<section class="ab-hero">
+  <div class="ab-grain" aria-hidden="true"></div>
+  <div class="ab-bg-word" aria-hidden="true">Dcasel</div>
+  <div class="ab-breadcrumb" id="abBc">
+    <a href="index.html">Home</a>
+    <span>→</span>
+    <span class="cur">About</span>
+  </div>
+  <h1 class="ab-h1">
+    <span class="aline d1" id="al1">A Boutique</span>
+    <span class="aline it d2" id="al2">Studio Built</span>
+    <span class="aline em d3" id="al3">Different.</span>
+  </h1>
+  <div class="ab-hero-foot" id="abFoot">
+    <p class="ab-tagline">We're a design studio operating from Bengaluru, India, with one conviction: exceptional design is the single most powerful investment a growing business can make. Not decoration — design as competitive advantage.</p>
+    <div class="ab-badges">
+      <span class="ab-badge">Est. 2016</span>
+      <span class="ab-badge">Bengaluru, India</span>
+      <span class="ab-badge">300+ Projects</span>
+      <span class="ab-badge">12+ Industries</span>
+    </div>
+  </div>
+</section>
+
+<!-- STUDIO NAV STRIP -->
+<div class="studio-strip">
+  <span class="studio-strip-label">Studio</span>
+  <a href="about.html" class="studio-chip current">About</a>
+  <a href="process.html" class="studio-chip">Process</a>
+  <a href="why-dcasel.html" class="studio-chip">Why Dcasel</a>
+</div>
+
+<!-- MANIFESTO -->
+<section class="manifesto">
+  <div class="mani-grid">
+    <div class="rev">
+      <div class="sec-tag">Our Conviction</div>
+      <h2 class="mani-heading">Design that<br>earns its <em>place.</em></h2>
+    </div>
+    <div class="rev d2">
+      <div class="mani-body">
+        <p>Dcasel Creative was founded in 2016 on a single premise: that great design is not a luxury, it's leverage. The businesses that invest in craft — in making things genuinely beautiful, genuinely usable, genuinely coherent — consistently outperform those that don't.</p>
+        <p>We've spent nine years proving that premise right. Across 300+ projects, 12+ industries, and every stage of company growth, we've seen design change the trajectory of businesses. Brands that finally felt right. Products that users actually understood. Campaigns that generated attention without paid media.</p>
+        <p>We don't take on every project. We take on the ones where we can genuinely move the needle — and then we go all in.</p>
+      </div>
+      <div class="mani-quote">
+        <p>"The best design is invisible — it works so well people don't notice it. They just feel it."</p>
+        <cite>— Mohammed Younus Kaladgi, Founder</cite>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAND -->
+<div class="stats-band">
+  <div class="stats-grid">
+    <div class="stat-cell rev">
+      <div class="stat-n"><span>300</span><span class="stat-plus">+</span></div>
+      <div class="stat-label">Projects Completed</div>
+    </div>
+    <div class="stat-cell rev d1">
+      <div class="stat-n"><span>9</span><span class="stat-plus">yr</span></div>
+      <div class="stat-label">Years in Business</div>
+    </div>
+    <div class="stat-cell rev d2">
+      <div class="stat-n"><span>98</span><span class="stat-plus">%</span></div>
+      <div class="stat-label">Client Satisfaction</div>
+    </div>
+    <div class="stat-cell rev d3">
+      <div class="stat-n"><span>12</span><span class="stat-plus">+</span></div>
+      <div class="stat-label">Industries Served</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOUNDER -->
+<section class="founder">
+  <div class="founder-grid">
+    <div>
+      <div class="founder-label rev">Founder & Creative Director</div>
+      <h2 class="founder-name rev d1">Mohammed<br>Younus<br>Kaladgi</h2>
+      <p class="founder-role rev d2">Founder & Creative Director</p>
+      <div class="founder-body rev d3">
+        <p>Mohammed started Dcasel in 2016 with a sketchbook, a laptop, and a conviction that most businesses were leaving enormous value on the table by treating design as decoration rather than strategy.</p>
+        <p>Over nine years, he's built a team of eight, worked with over 300 companies from seed stage to public market, and developed a reputation for work that is both visually exceptional and commercially rigorous.</p>
+        <p>Before Dcasel, he spent four years at leading agencies in Bengaluru and Mumbai, working across brand, digital, and packaging. He studied Communication Design at NID Ahmedabad.</p>
+        <div class="founder-quote">
+          <p>"I started Dcasel because I wanted to work with founders who cared as much about the details as I did. Nine years later, that's still the only kind of client I take on."</p>
+          <cite>— Mohammed Younus Kaladgi</cite>
+        </div>
+      </div>
+    </div>
+    <div class="founder-right rev d2">
+      <div class="founder-img-block">
+        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=900&auto=format&fit=crop" alt="Mohammed Younus Kaladgi" loading="lazy">
+      </div>
+      <div class="founder-caption">
+        <div class="founder-av">M</div>
+        <div>
+          <div class="founder-cap-n">Mohammed Younus Kaladgi</div>
+          <div class="founder-cap-r">Founder & Creative Director · Est. 2016</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VALUES -->
+<section class="values">
+  <div class="values-hd">
+    <div class="sec-tag rev" style="color:rgba(244,241,236,.35)">What we believe</div>
+    <h2 class="values-title rev d1">The principles<br>we <em>never compromise</em></h2>
+  </div>
+  <div class="values-grid">
+    <div class="val-item rev">
+      <div class="val-n">01</div>
+      <h3 class="val-title">Strategy First</h3>
+      <p class="val-body">We don't design until we understand the business objective. Every creative decision traces back to a measurable outcome.</p>
+    </div>
+    <div class="val-item rev d1">
+      <div class="val-n">02</div>
+      <h3 class="val-title">Obsessive Craft</h3>
+      <p class="val-body">We sweat the micro-interactions, typographic details, and hover states. The difference between good and remarkable lives in what most people never notice.</p>
+    </div>
+    <div class="val-item rev d2">
+      <div class="val-n">03</div>
+      <h3 class="val-title">Radical Honesty</h3>
+      <p class="val-body">We tell you what we actually think — about your brief, your timeline, your idea. Honest conversations lead to better work.</p>
+    </div>
+    <div class="val-item rev d3">
+      <div class="val-n">04</div>
+      <h3 class="val-title">Long-Term Thinking</h3>
+      <p class="val-body">We design systems that scale. We build relationships that last. 80% of our revenue comes from returning clients — because we think beyond the deliverable.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section class="team">
+  <div class="team-hd">
+    <div class="sec-tag rev">The people</div>
+    <h2 class="team-title rev d1">Meet the <em>team</em></h2>
+  </div>
+  <div class="team-grid">
+    <div class="team-card rev">
+      <div class="team-photo"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600&auto=format&fit=crop" alt="Mohammed" loading="lazy"></div>
+      <div class="team-info"><div class="team-name">Mohammed Younus</div><div class="team-role">Founder & Creative Director</div></div>
+    </div>
+    <div class="team-card rev d1">
+      <div class="team-photo"><img src="https://images.unsplash.com/photo-1494790108755-2616b612b78c?q=80&w=600&auto=format&fit=crop" alt="Ananya" loading="lazy"></div>
+      <div class="team-info"><div class="team-name">Ananya Rao</div><div class="team-role">Senior Brand Designer</div></div>
+    </div>
+    <div class="team-card rev d2">
+      <div class="team-photo"><img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=600&auto=format&fit=crop" alt="Arjun" loading="lazy"></div>
+      <div class="team-info"><div class="team-name">Arjun Krishnan</div><div class="team-role">Lead UI/UX Designer</div></div>
+    </div>
+    <div class="team-card rev d3">
+      <div class="team-photo"><img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=600&auto=format&fit=crop" alt="Priya" loading="lazy"></div>
+      <div class="team-info"><div class="team-name">Priya Menon</div><div class="team-role">Motion Designer</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-band">
+  <div class="cta-band-bg" aria-hidden="true">Studio</div>
+  <div class="cta-band-inner">
+    <div class="sec-tag rev" style="justify-content:center">Work with us</div>
+    <h2 class="cta-band-title rev d1">Let's make something<br>genuinely <em>remarkable.</em></h2>
+    <p class="cta-band-sub rev d2">First consultation is always free. We'd love to hear what you're building.</p>
+    <div class="cta-btns rev d3">
+      <a href="index.html#cta" class="btn-p">Start a Project <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <a href="index.html#work" class="btn-o">See our work</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="ft-g">
+    <div>
+      <a href="index.html" class="ft-logo">DC<em>.</em>ASEL</a>
+      <p class="ft-desc">A boutique design studio crafting remarkable brand identities and digital experiences since 2016.</p>
+      <div class="ft-socs">
+        <a href="#" class="ft-soc">Li</a><a href="#" class="ft-soc">Ig</a><a href="#" class="ft-soc">Dr</a><a href="#" class="ft-soc">Bé</a>
+      </div>
+    </div>
+    <div class="ft-col"><h4>Services</h4><ul><li><a href="brand-identity.html">Brand Identity</a></li><li><a href="web-design.html">Web Design</a></li><li><a href="product-design.html">Product Design</a></li><li><a href="motion-design.html">Motion Design</a></li><li><a href="creative-direction.html">Creative Direction</a></li></ul></div>
+    <div class="ft-col"><h4>Studio</h4><ul><li><a href="about.html">About</a></li><li><a href="process.html">Process</a></li><li><a href="why-dcasel.html">Why Dcasel</a></li><li><a href="index.html#work">Case Studies</a></li></ul></div>
+    <div class="ft-col"><h4>Contact</h4><ul><li><a href="mailto:hello@dcasel.com">hello@dcasel.com</a></li><li><a href="#">Bengaluru, India</a></li><li><a href="index.html#cta">Start a Project</a></li></ul></div>
+  </div>
+  <div class="ft-bot"><span class="ft-copy">© 2025 Dcasel Creative Pvt. Ltd.</span><span class="ft-made">Crafted with care in <em>Bengaluru</em></span></div>
+</footer>
+
+<script>
+(function(){
+const $$=(s,el=document)=>[...el.querySelectorAll(s)];
+const isPtr=window.matchMedia('(pointer:fine)').matches;
+if(isPtr){
+  const cur=document.getElementById('cur3');
+  const trail=document.getElementById('curTrail');
+  let mx=0,my=0,cx=0,cy=0,tx=0,ty=0;
+  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+  (function tick(){
+    cx+=(mx-cx)*.18;cy+=(my-cy)*.18;tx+=(mx-tx)*.08;ty+=(my-ty)*.08;
+    cur.style.left=cx+'px';cur.style.top=cy+'px';trail.style.left=tx+'px';trail.style.top=ty+'px';
+    const dx=mx-cx,dy=my-cy;
+    cur.style.transform=`translate(-50%,-50%) rotateX(${Math.max(-16,Math.min(16,dy*.28))}deg) rotateY(${Math.max(-16,Math.min(16,-dx*.28))}deg)`;
+    requestAnimationFrame(tick);
+  })();
+  $$('a,button').forEach(el=>{el.addEventListener('mouseenter',()=>cur.classList.add('hov'));el.addEventListener('mouseleave',()=>cur.classList.remove('hov'));});
+}
+const prog=document.getElementById('prog');
+window.addEventListener('scroll',()=>{prog.style.transform=`scaleX(${window.scrollY/(document.body.scrollHeight-window.innerHeight)||0})`;},{passive:true});
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>nav.classList.toggle('stuck',window.scrollY>30),{passive:true});
+const hamBtn=document.getElementById('hamBtn');
+const mob=document.getElementById('mobMenu');
+hamBtn.addEventListener('click',()=>{const o=mob.classList.toggle('open');hamBtn.classList.toggle('open',o);document.body.style.overflow=o?'hidden':'';});
+$$('.mm').forEach(a=>a.addEventListener('click',()=>{mob.classList.remove('open');hamBtn.classList.remove('open');document.body.style.overflow='';}));
+setTimeout(()=>{
+  document.getElementById('abBc')?.classList.add('vis');
+  ['al1','al2','al3'].forEach((id,i)=>setTimeout(()=>document.getElementById(id)?.classList.add('vis'),300+i*150));
+  setTimeout(()=>document.getElementById('abFoot')?.classList.add('vis'),900);
+},80);
+const ro=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');ro.unobserve(e.target);}});},{threshold:.07,rootMargin:'0px 0px -36px 0px'});
+$$('.rev').forEach(el=>ro.observe(el));
+})();
+
+/* ── Submenu: ensure click works (pointer-events fix) ── */
+(function(){
+  document.querySelectorAll('.nav-item').forEach(item=>{
+    const drop = item.querySelector('.nav-drop');
+    if(!drop) return;
+    // Keep dropdown open while moving between link and dropdown
+    let leaveTimer;
+    item.addEventListener('mouseenter',()=>clearTimeout(leaveTimer));
+    item.addEventListener('mouseleave',()=>{
+      leaveTimer = setTimeout(()=>{
+        drop.style.pointerEvents='none';
+        drop.style.opacity='0';
+        drop.style.transform='translateX(-50%) translateY(-8px)';
+      }, 120);
+    });
+    drop.addEventListener('mouseenter',()=>{
+      clearTimeout(leaveTimer);
+      drop.style.pointerEvents='auto';
+      drop.style.opacity='1';
+      drop.style.transform='translateX(-50%) translateY(0)';
+    });
+    drop.addEventListener('mouseleave',()=>{
+      leaveTimer = setTimeout(()=>{
+        drop.style.pointerEvents='none';
+        drop.style.opacity='0';
+        drop.style.transform='translateX(-50%) translateY(-8px)';
+      }, 80);
+    });
+    // click on the parent link area — toggle for touch
+    const link = item.querySelector('.nav-link');
+    if(link){
+      link.addEventListener('click',e=>{
+        // if has dropdown and click is on the link (not on an anchor inside drop)
+        // do nothing — let default navigate. But prevent default only if href="#"
+        if(link.getAttribute('href')==='#' || !link.getAttribute('href')){
+          e.preventDefault();
+        }
+      });
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

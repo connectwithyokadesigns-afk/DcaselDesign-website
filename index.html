@@ -1,0 +1,2203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dcasel — Design Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Syne:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+@media(pointer:fine){*{cursor:none;}}
+:root{
+  --bone:#f4f1ec;--off:#eae6de;--parchm:#d9d4c9;
+  --mid:#a09b90;--muted:#6e6860;--ink:#0e0d0b;
+  --dark:#141210;--charcoal:#1c1a17;
+  --ember:#d44c27;--ember2:#e86240;
+  --ease:cubic-bezier(0.22,1,0.36,1);
+  --spring:cubic-bezier(0.34,1.56,0.64,1);
+  --px:20px;--sy:80px;
+}
+@media(min-width:480px){:root{--px:28px;}}
+@media(min-width:768px){:root{--px:44px;--sy:110px;}}
+@media(min-width:1024px){:root{--px:64px;--sy:140px;}}
+@media(min-width:1280px){:root{--px:80px;--sy:160px;}}
+body{font-family:'Syne',sans-serif;background:var(--bone);color:var(--ink);overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+img{display:block;max-width:100%;height:auto;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+
+/* ══════════════════════════════════════════
+   CURSOR  ·  Sun default → Planet on hover
+   Debris / fragment particles via canvas
+   3-D sphere illusion via layered gradients
+══════════════════════════════════════════ */
+@media(pointer:fine){*{cursor:none;}}
+
+/* wrapper — zero size, centred on hot-spot */
+#cur3{
+  display:none;position:fixed;pointer-events:none;z-index:9999;
+  transform:translate(-50%,-50%);will-change:left,top;
+  width:0;height:0;
+}
+@media(pointer:fine){#cur3{display:block;}}
+
+/* ── the orb itself ── */
+#curOrb{
+  position:absolute;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  will-change:transform,width,height,background,box-shadow;
+  overflow:hidden;
+  /* 3-D feel: perspective shadow on bottom-right */
+  filter:drop-shadow(2px 3px 6px rgba(0,0,0,.55));
+  transition:
+    width  .42s cubic-bezier(.34,1.56,.64,1),
+    height .42s cubic-bezier(.34,1.56,.64,1),
+    background .35s ease,
+    box-shadow .35s ease;
+}
+
+/* specular top-left glint — always on, planet-specific colour set inline */
+#curOrb::before{
+  content:'';position:absolute;
+  top:10%;left:13%;
+  width:30%;height:19%;
+  background:rgba(255,255,255,.68);
+  border-radius:50%;
+  transform:rotate(-30deg);
+  filter:blur(1px);
+  pointer-events:none;z-index:5;
+}
+/* bottom-right dark terminator — gives 3-D depth */
+#curOrb::after{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(
+    circle at 68% 72%,
+    rgba(0,0,0,.38) 0%,
+    transparent 60%
+  );
+  pointer-events:none;z-index:4;
+  mix-blend-mode:multiply;
+}
+
+/* ── noise texture layer (child div, so ::after stays for terminator) ── */
+#curNoise{
+  position:absolute;inset:0;border-radius:50%;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='4' seed='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='64' height='64' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E") center/cover;
+  mix-blend-mode:overlay;
+  pointer-events:none;z-index:3;
+  opacity:.7;
+}
+
+/* ── Saturn ring ── */
+#curRing{
+  position:absolute;border-radius:50%;
+  top:50%;left:50%;
+  transform:translate(-50%,-54%) rotateX(72deg);
+  pointer-events:none;z-index:1;
+  opacity:0;
+  transition:opacity .4s ease;
+  /* ring drawn as conic + radial blend */
+}
+#cur3.has-ring #curRing{opacity:1;}
+
+/* ── atmosphere halo (glows around planet edge) ── */
+#curAtmo{
+  position:absolute;border-radius:50%;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  pointer-events:none;z-index:0;
+  opacity:0;
+  transition:opacity .35s ease, width .42s cubic-bezier(.34,1.56,.64,1), height .42s cubic-bezier(.34,1.56,.64,1);
+  filter:blur(6px);
+}
+#cur3.has-atmo #curAtmo{opacity:1;}
+
+/* ── debris canvas layer ── */
+#curCanvas{
+  position:fixed;inset:0;pointer-events:none;z-index:9998;
+  opacity:0;transition:opacity .3s ease;
+}
+#cur3.hov ~ #curCanvas, #curCanvas.active{opacity:1;}
+
+/* ── sun corona spin keyframe ── */
+@keyframes coronaSpin{to{transform:rotate(360deg);}}
+@keyframes sunPulse{
+  0%,100%{box-shadow:0 0 0 1.5px rgba(212,76,39,.4),0 0 10px 3px rgba(212,76,39,.5),0 0 22px 6px rgba(212,76,39,.18),0 0 40px 12px rgba(212,76,39,.07);}
+  50%    {box-shadow:0 0 0 2px   rgba(212,76,39,.55),0 0 16px 5px rgba(212,76,39,.65),0 0 32px 9px rgba(212,76,39,.24),0 0 54px 16px rgba(212,76,39,.1);}
+}
+#curOrb.is-sun{animation:sunPulse 2.6s ease-in-out infinite;}
+#curCorona{
+  position:absolute;inset:-55%;border-radius:50%;pointer-events:none;z-index:0;
+  background:conic-gradient(
+    rgba(255,145,25,.11) 0deg, transparent 50deg,
+    rgba(255,80,12,.08)  100deg,transparent 150deg,
+    rgba(255,145,25,.1)  200deg,transparent 250deg,
+    rgba(255,80,12,.08)  300deg,transparent 360deg
+  );
+  animation:coronaSpin 5s linear infinite;
+  opacity:0;transition:opacity .3s ease;
+}
+#cur3.is-sun #curCorona{opacity:1;}
+
+/* PROGRESS */
+#prog{position:fixed;top:0;left:0;height:1px;width:100%;background:var(--ember);z-index:9999;transform:scaleX(0);transform-origin:left;}
+
+/* NOISE */
+.noise{position:fixed;inset:0;pointer-events:none;z-index:8000;opacity:.022;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+/* NAV */
+nav{position:fixed;inset:0 0 auto;z-index:500;height:60px;padding:0 var(--px);display:flex;align-items:center;justify-content:space-between;transition:background .45s;}
+@media(min-width:768px){nav{height:68px;}}
+nav.stuck{background:rgba(244,241,236,.93);backdrop-filter:blur(20px) saturate(160%);border-bottom:1px solid rgba(14,13,11,.07);}
+.logo{font-family:'Cormorant Garamond',serif;font-size:1.45rem;font-weight:500;letter-spacing:.06em;color:var(--ink);}
+.logo em{font-style:normal;color:var(--ember);}
+.nav-links{display:none;align-items:center;gap:36px;}
+@media(min-width:900px){.nav-links{display:flex;}}
+.nav-item{position:relative;}
+.nav-link{font-size:.65rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);transition:color .2s;display:flex;align-items:center;gap:5px;}
+.nav-link:hover,.nav-link.active{color:var(--ink);}
+.nav-chevron{width:8px;height:8px;flex-shrink:0;transition:transform .25s var(--ease);}
+.nav-item:hover .nav-chevron{transform:rotate(180deg);}
+.nav-drop{position:absolute;top:calc(100% + 18px);left:50%;transform:translateX(-50%) translateY(-8px);background:var(--bone);border:1px solid rgba(14,13,11,.08);border-radius:4px;padding:8px;min-width:180px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:0 16px 48px rgba(14,13,11,.1);}
+.nav-item:hover .nav-drop{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+.nav-drop a{display:block;font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:.6rem .85rem;border-radius:2px;transition:color .18s,background .18s;white-space:nowrap;}
+.nav-drop a:hover,.nav-drop a.active{color:var(--ink);background:var(--off);}
+.nav-drop a.active{color:var(--ember)!important;}
+.drop-div{height:1px;background:rgba(14,13,11,.07);margin:4px 8px;}
+.nav-cta{display:none;font-size:.64rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:.42rem 1.15rem;border-radius:100px;border:1px solid rgba(14,13,11,.2);transition:background .22s,color .22s;}
+.nav-cta:hover{background:var(--ink);color:var(--bone);}
+@media(min-width:900px){.nav-cta{display:block;}}
+.ham{display:flex;flex-direction:column;justify-content:center;gap:5px;background:none;border:none;padding:8px;margin-right:-8px;width:40px;height:40px;}
+.ham span{display:block;width:22px;height:1.5px;background:var(--ink);border-radius:1px;transition:transform .32s var(--ease),opacity .22s;}
+.ham.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg);}
+.ham.open span:nth-child(2){opacity:0;}
+.ham.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg);}
+@media(min-width:900px){.ham{display:none;}}
+.mob{position:fixed;inset:0;z-index:490;background:var(--ink);display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;padding:0 var(--px) clamp(40px,8vw,64px);transform:translateY(-100%);transition:transform .65s var(--ease);pointer-events:none;}
+.mob.open{transform:translateY(0);pointer-events:auto;}
+.mob-links{display:flex;flex-direction:column;gap:0;margin-bottom:40px;width:100%;}
+.mob-links a{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,8.5vw,3.2rem);font-weight:300;font-style:italic;color:var(--bone);padding:11px 0;border-bottom:1px solid rgba(244,241,236,.07);opacity:0;transform:translateX(-18px);transition:opacity .48s var(--ease),transform .48s var(--ease);}
+.mob.open .mob-links a{opacity:1;transform:translateX(0);}
+.mob.open .mob-links a:nth-child(1){transition-delay:.07s;}
+.mob.open .mob-links a:nth-child(2){transition-delay:.13s;}
+.mob.open .mob-links a:nth-child(3){transition-delay:.19s;}
+.mob.open .mob-links a:nth-child(4){transition-delay:.25s;}
+.mob-links a:hover{color:var(--ember);}
+.mob-btn{display:flex;align-items:center;justify-content:center;width:100%;padding:.95rem;background:var(--ember);border-radius:100px;color:var(--bone);font-size:.76rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:0;transform:translateY(10px);transition:opacity .38s .36s var(--ease),transform .38s .36s var(--ease);}
+.mob.open .mob-btn{opacity:1;transform:translateY(0);}
+
+/* UTILS */
+.rev{opacity:0;transform:translateY(24px);transition:opacity .85s var(--ease),transform .85s var(--ease);}
+.rev.vis{opacity:1;transform:none;}
+.d1{transition-delay:.1s;}.d2{transition-delay:.2s;}.d3{transition-delay:.3s;}.d4{transition-delay:.4s;}
+.sec-tag{font-size:.58rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:10px;}
+.sec-tag::before{content:'';width:18px;height:1px;background:var(--parchm);flex-shrink:0;}
+.btn-p{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--bone);background:var(--ink);padding:.78rem 1.5rem;border-radius:100px;border:none;transition:transform .28s var(--ease),box-shadow .28s;}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(14,13,11,.18);}
+.btn-p svg{width:11px;height:11px;stroke:var(--bone);fill:none;flex-shrink:0;}
+.btn-o{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);padding:.78rem 1.5rem;border-radius:100px;border:1px solid rgba(14,13,11,.18);transition:background .22s;}
+.btn-o:hover{background:var(--off);}
+.btn-ember{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--bone);background:var(--ember);padding:.78rem 1.5rem;border-radius:100px;border:none;transition:transform .28s var(--ease),opacity .28s;}
+.btn-ember:hover{transform:translateY(-2px);opacity:.9;}
+.btn-ember svg{width:11px;height:11px;stroke:var(--bone);fill:none;}
+
+/* ── PAGE HERO ── */
+.pg-hero{min-height:88svh;display:flex;flex-direction:column;justify-content:flex-end;padding:0 var(--px) var(--sy);position:relative;overflow:hidden;background:var(--bone);}
+.pg-hero-grain{position:absolute;inset:0;pointer-events:none;opacity:.028;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='ng'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23ng)'/%3E%3C/svg%3E");}
+.pg-hero-num{position:absolute;right:var(--px);bottom:calc(var(--sy) + 40px);font-family:'Cormorant Garamond',serif;font-size:clamp(120px,22vw,280px);font-weight:300;line-height:1;color:transparent;-webkit-text-stroke:1px rgba(14,13,11,.06);pointer-events:none;user-select:none;letter-spacing:-.04em;}
+.pg-breadcrumb{font-size:.56rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px;margin-bottom:clamp(28px,4vw,44px);opacity:0;transform:translateY(12px);transition:opacity .7s .2s var(--ease),transform .7s .2s var(--ease);}
+.pg-breadcrumb.vis{opacity:1;transform:none;}
+.pg-breadcrumb a{color:var(--mid);transition:color .2s;}
+.pg-breadcrumb a:hover{color:var(--ink);}
+.pg-breadcrumb span{color:var(--ember);}
+.pg-h1{font-family:'Cormorant Garamond',serif;font-size:clamp(56px,12vw,152px);font-weight:400;line-height:.86;letter-spacing:-.025em;overflow:hidden;}
+.pg-h1 .line{display:block;opacity:0;transform:translateY(100%);transition:opacity .9s var(--ease),transform .9s var(--ease);}
+.pg-h1 .line.vis{opacity:1;transform:none;}
+.pg-h1 .it{font-style:italic;}
+.pg-h1 .em{color:var(--ember);}
+.pg-h1 .ol{color:transparent;-webkit-text-stroke:1.5px rgba(14,13,11,.2);}
+.pg-hero-foot{padding-top:clamp(28px,4vw,48px);border-top:1px solid rgba(14,13,11,.1);display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between;opacity:0;transform:translateY(16px);transition:opacity .85s .8s var(--ease),transform .85s .8s var(--ease);}
+.pg-hero-foot.vis{opacity:1;transform:none;}
+.pg-hero-desc{font-size:.9rem;font-weight:500;line-height:1.82;color:var(--muted);max-width:52ch;}
+.pg-hero-tags{display:flex;gap:7px;flex-wrap:wrap;}
+.pg-htag{font-size:.52rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:.24rem .8rem;border:1px solid rgba(14,13,11,.14);border-radius:100px;}
+
+/* ── INTRO SPLIT ── */
+.intro-split{padding:var(--sy) var(--px);display:grid;grid-template-columns:1fr;gap:48px;}
+@media(min-width:860px){.intro-split{grid-template-columns:1fr 1fr;gap:80px;align-items:start;}}
+.intro-lead{font-family:'Cormorant Garamond',serif;font-size:clamp(22px,3.2vw,38px);font-weight:400;line-height:1.3;letter-spacing:-.015em;color:var(--ink);}
+.intro-body{font-size:.86rem;font-weight:500;line-height:1.9;color:var(--muted);}
+.intro-body p+p{margin-top:16px;}
+
+/* ── APPROACH STEPS ── */
+.approach{padding:var(--sy) var(--px);background:var(--ink);}
+.approach-hd{margin-bottom:clamp(48px,6vw,72px);}
+.approach-title{font-family:'Cormorant Garamond',serif;font-size:clamp(34px,6vw,76px);font-weight:300;color:var(--bone);line-height:.9;letter-spacing:-.02em;margin-top:12px;}
+.approach-title em{font-style:italic;color:var(--ember);}
+.steps{display:flex;flex-direction:column;}
+.step{display:grid;grid-template-columns:60px 1fr;gap:0;padding:clamp(28px,4vw,48px) 0;border-top:1px solid rgba(244,241,236,.06);position:relative;transition:padding-left .38s var(--ease);}
+.step:last-child{border-bottom:1px solid rgba(244,241,236,.06);}
+.step:hover{padding-left:12px;}
+@media(min-width:860px){.step{grid-template-columns:120px 1fr 1fr;gap:40px;align-items:start;}}
+.step-n{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,4vw,3.5rem);font-weight:300;color:rgba(244,241,236,.1);line-height:1;transition:color .38s;}
+.step:hover .step-n{color:var(--ember);}
+.step-body{padding-left:16px;}
+@media(min-width:860px){.step-body{padding-left:0;}}
+.step-title{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,2.6vw,34px);font-weight:400;color:var(--bone);line-height:1;letter-spacing:-.01em;margin-bottom:10px;transition:color .28s;}
+.step:hover .step-title{color:var(--ember);}
+.step-desc{font-size:.82rem;font-weight:500;line-height:1.85;color:rgba(244,241,236,.32);max-width:42ch;transition:color .38s;}
+.step:hover .step-desc{color:rgba(244,241,236,.5);}
+.step-tags{display:none;}
+@media(min-width:860px){.step-tags{display:flex;flex-wrap:wrap;gap:7px;align-items:flex-start;padding-top:4px;}}
+.step-tag{font-size:.52rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,236,.22);padding:.2rem .68rem;border:1px solid rgba(244,241,236,.08);border-radius:100px;transition:border-color .32s,color .32s;}
+.step:hover .step-tag{border-color:rgba(212,76,39,.28);color:rgba(212,76,39,.65);}
+
+/* ── DELIVERABLES ── */
+.deliverables{padding:var(--sy) var(--px);background:var(--off);}
+.del-grid{display:grid;grid-template-columns:1fr;gap:48px;}
+@media(min-width:860px){.del-grid{grid-template-columns:1fr 1fr;gap:80px;align-items:start;}}
+.del-intro{}
+.del-title{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,4.5vw,56px);font-weight:400;line-height:.92;letter-spacing:-.02em;margin-top:12px;margin-bottom:24px;}
+.del-sub{font-size:.84rem;font-weight:500;line-height:1.85;color:var(--muted);}
+.del-list{display:flex;flex-direction:column;gap:0;border-top:1px solid rgba(14,13,11,.1);}
+.del-item{display:flex;align-items:center;justify-content:space-between;padding:18px 0;border-bottom:1px solid rgba(14,13,11,.07);gap:16px;transition:padding-left .28s var(--ease);}
+.del-item:hover{padding-left:8px;}
+.del-name{font-family:'Cormorant Garamond',serif;font-size:clamp(18px,2.2vw,26px);font-weight:400;letter-spacing:-.01em;}
+.del-icon{width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,13,11,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .28s,border-color .28s,transform .38s var(--spring);}
+.del-item:hover .del-icon{background:var(--ember);border-color:var(--ember);transform:rotate(45deg);}
+.del-icon svg{width:10px;height:10px;stroke:var(--ink);fill:none;transition:stroke .28s;}
+.del-item:hover .del-icon svg{stroke:var(--bone);}
+
+/* ── CASE STUDIES ── */
+.cases{padding:var(--sy) var(--px);background:var(--dark);}
+.cases-hd{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:clamp(36px,5vw,56px);flex-wrap:wrap;gap:16px;border-bottom:1px solid rgba(244,241,236,.06);padding-bottom:clamp(28px,3vw,40px);}
+.cases-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,6vw,72px);font-weight:300;font-style:italic;color:var(--bone);line-height:.9;letter-spacing:-.02em;margin-top:12px;}
+.cases-grid{display:grid;grid-template-columns:1fr;gap:20px;}
+@media(min-width:600px){.cases-grid{grid-template-columns:1fr 1fr;}}
+@media(min-width:1024px){.cases-grid{grid-template-columns:1fr 1fr 1fr;}}
+.cs-card{position:relative;overflow:hidden;background:#0a0908;aspect-ratio:3/4;}
+.cs-card.wide{grid-column:span 2;}
+.cs-img{position:absolute;inset:0;}
+.cs-img img{width:100%;height:100%;object-fit:cover;filter:grayscale(20%) brightness(.58);transition:filter 1s var(--ease),transform 1.1s var(--ease);}
+.cs-card:hover .cs-img img{filter:grayscale(0%) brightness(.75);transform:scale(1.04);}
+.cs-info{position:absolute;bottom:0;left:0;right:0;padding:24px 20px 20px;background:linear-gradient(to top,rgba(14,13,11,.98) 0%,rgba(14,13,11,.55) 55%,transparent 100%);}
+.cs-cat{font-size:.54rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ember);margin-bottom:6px;display:block;}
+.cs-name{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,2.8vw,30px);font-weight:400;color:var(--bone);line-height:.95;letter-spacing:-.02em;margin-bottom:8px;}
+.cs-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;}
+.cs-tag-sm{font-size:.48rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,236,.32);padding:.12rem .5rem;border:1px solid rgba(244,241,236,.1);border-radius:100px;}
+.cs-link{display:inline-flex;align-items:center;gap:6px;font-size:.58rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,236,.5);transition:color .28s;}
+.cs-card:hover .cs-link{color:var(--bone);}
+.cs-link svg{width:9px;height:9px;stroke:currentColor;fill:none;transition:transform .28s;}
+.cs-card:hover .cs-link svg{transform:translate(2px,-2px);}
+
+/* ── WHY US ── */
+.why-panel{padding:var(--sy) var(--px);background:var(--charcoal);}
+.why-grid{display:grid;grid-template-columns:1fr;gap:clamp(40px,6vw,64px);}
+@media(min-width:960px){.why-grid{grid-template-columns:5fr 7fr;gap:80px;}}
+.why-sticky{}
+@media(min-width:960px){.why-sticky{position:sticky;top:96px;}}
+.why-title{font-family:'Cormorant Garamond',serif;font-size:clamp(30px,4.5vw,56px);font-weight:300;font-style:italic;color:var(--bone);line-height:.92;letter-spacing:-.02em;margin-top:12px;margin-bottom:20px;}
+.why-sub{font-size:.84rem;font-weight:500;line-height:1.85;color:rgba(244,241,236,.38);max-width:34ch;}
+.why-nums{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:clamp(28px,4vw,44px);}
+.why-num{padding-left:14px;border-left:2px solid var(--ember);}
+.why-num-n{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,4vw,3rem);font-weight:300;color:var(--bone);display:block;line-height:1;margin-bottom:4px;}
+.why-num-l{font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,236,.28);font-weight:700;}
+.why-rows{border-top:1px solid rgba(244,241,236,.07);}
+.why-row{padding:clamp(18px,2.5vw,28px) 0;border-bottom:1px solid rgba(244,241,236,.07);transition:padding-left .32s var(--ease);}
+.why-row:hover{padding-left:8px;}
+.why-rh{display:flex;justify-content:space-between;align-items:center;gap:12px;}
+.why-rt{font-family:'Cormorant Garamond',serif;font-size:clamp(18px,2.5vw,30px);font-weight:400;color:var(--bone);transition:color .28s;flex:1;}
+.why-row:hover .why-rt{color:var(--ember);}
+.why-rn{font-size:.54rem;letter-spacing:.12em;color:rgba(244,241,236,.2);font-weight:700;flex-shrink:0;}
+.why-rb{font-size:.8rem;font-weight:500;line-height:1.82;color:rgba(244,241,236,.38);max-width:44ch;margin-top:8px;}
+
+/* ── CTA BAND ── */
+.cta-band{padding:clamp(80px,12vw,140px) var(--px);background:var(--bone);text-align:center;position:relative;overflow:hidden;}
+.cta-band-bg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Cormorant Garamond',serif;font-size:clamp(80px,18vw,240px);font-weight:300;color:transparent;-webkit-text-stroke:1px rgba(14,13,11,.04);white-space:nowrap;pointer-events:none;user-select:none;}
+.cta-band-inner{position:relative;z-index:1;}
+.cta-band-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,6.5vw,88px);font-weight:300;line-height:.9;letter-spacing:-.025em;margin-top:18px;margin-bottom:18px;}
+.cta-band-title em{font-style:italic;color:var(--ember);}
+.cta-band-sub{font-size:.84rem;font-weight:500;line-height:1.85;color:var(--muted);max-width:46ch;margin:0 auto 36px;}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+
+/* ── SERVICES & EXPERTISE ── */
+#services{padding:var(--sy) var(--px);background:var(--bone);}
+.srv-head{display:flex;flex-direction:column;gap:14px;margin-bottom:clamp(36px,5vw,56px);}
+@media(min-width:768px){.srv-head{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:end;}}
+.srv-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,6vw,72px);font-weight:400;line-height:.9;letter-spacing:-.02em;margin-top:12px;}
+.srv-title em{font-style:italic;color:var(--muted);}
+.srv-intro{font-size:.84rem;font-weight:500;line-height:1.85;color:var(--muted);}
+.srv-list{border-top:1px solid rgba(14,13,11,.1);}
+
+/* Service row — expandable */
+.srv-row{border-bottom:1px solid rgba(14,13,11,.08);position:relative;overflow:hidden;}
+.srv-row-head{display:grid;grid-template-columns:36px 1fr 36px;gap:12px;align-items:center;padding:20px 0;position:relative;}
+@media(min-width:600px){.srv-row-head{grid-template-columns:44px 1fr auto 36px;gap:20px;padding:24px 0;}}
+@media(pointer:fine){
+  .srv-row-head::before{content:'';position:absolute;inset:0;background:var(--off);transform:translateX(-101%);transition:transform .48s var(--ease);z-index:0;}
+  .srv-row.active .srv-row-head::before,.srv-row-head:hover::before{transform:translateX(0);}
+  .srv-row-head>*{position:relative;z-index:1;}
+}
+.srv-num{font-size:.56rem;letter-spacing:.12em;color:var(--mid);text-align:right;font-weight:600;}
+.srv-main{display:flex;flex-direction:column;gap:5px;}
+@media(min-width:600px){.srv-main{flex-direction:row;align-items:center;gap:18px;}}
+.srv-name{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,3vw,38px);font-weight:400;letter-spacing:-.015em;cursor:pointer;}
+.srv-tags{display:flex;gap:5px;flex-wrap:wrap;}
+@media(min-width:600px){.srv-tags{opacity:0;transform:translateX(-6px);transition:opacity .3s,transform .3s;}.srv-row:hover .srv-tags{opacity:1;transform:translateX(0);}}
+.srv-tag{font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mid);padding:.16rem .6rem;border:1px solid rgba(14,13,11,.1);border-radius:100px;font-weight:600;}
+.srv-arr{width:34px;height:34px;border-radius:50%;border:1px solid rgba(14,13,11,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .28s,border-color .28s,transform .38s var(--spring);cursor:pointer;}
+.srv-row.active .srv-arr{background:var(--ember);border-color:var(--ember);transform:rotate(45deg);}
+.srv-row.active .srv-arr svg{stroke:var(--bone);}
+@media(pointer:fine){.srv-row-head:hover .srv-arr{background:var(--ink);border-color:var(--ink);}.srv-row-head:hover .srv-arr svg{stroke:var(--bone);}}
+.srv-arr svg{width:11px;height:11px;stroke:var(--ink);fill:none;transition:stroke .28s;}
+
+/* SERVICE EXPAND PANEL */
+.srv-panel{height:0;overflow:hidden;transition:height .65s var(--ease);}
+.srv-panel-inner{padding:0 0 clamp(32px,5vw,56px);}
+.srv-panel-inner .panel-top{display:grid;grid-template-columns:1fr;gap:32px;margin-bottom:40px;}
+@media(min-width:768px){.srv-panel-inner .panel-top{grid-template-columns:1fr 1fr;gap:48px;}}
+.panel-about h4{font-family:'Cormorant Garamond',serif;font-size:clamp(22px,3vw,36px);font-weight:400;line-height:1;letter-spacing:-.015em;margin-bottom:14px;}
+.panel-about p{font-size:.82rem;font-weight:500;line-height:1.88;color:var(--muted);}
+.panel-deliverables h5{font-size:.56rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--mid);margin-bottom:16px;}
+.panel-deliverables ul{list-style:none;display:flex;flex-direction:column;gap:8px;}
+.panel-deliverables li{display:flex;align-items:center;gap:10px;font-size:.8rem;font-weight:500;color:var(--muted);}
+.panel-deliverables li::before{content:'';width:16px;height:1px;background:var(--ember);flex-shrink:0;}
+
+/* Case study grid inside service panel */
+.panel-cases-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.panel-cases-head h5{font-size:.56rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--mid);}
+.panel-cases-grid{display:grid;grid-template-columns:1fr;gap:16px;}
+@media(min-width:540px){.panel-cases-grid{grid-template-columns:1fr 1fr;}}
+@media(min-width:960px){.panel-cases-grid{grid-template-columns:repeat(3,1fr);}}
+.mini-card{position:relative;background:var(--dark);overflow:hidden;aspect-ratio:4/3;}
+.mini-card img{width:100%;height:100%;object-fit:cover;filter:grayscale(20%) brightness(.55);transition:filter .8s var(--ease),transform .9s var(--ease);}
+.mini-card:hover img{filter:grayscale(0%) brightness(.75);transform:scale(1.04);}
+.mini-info{position:absolute;bottom:0;left:0;right:0;padding:16px 14px 14px;background:linear-gradient(to top,rgba(14,13,11,.96) 0%,transparent 100%);}
+.mini-cat{font-size:.5rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ember);margin-bottom:4px;display:block;}
+.mini-name{font-family:'Cormorant Garamond',serif;font-size:clamp(14px,2vw,20px);font-weight:400;color:var(--bone);line-height:1;letter-spacing:-.01em;}
+.mini-exp{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;}
+.mini-exp-tag{font-size:.44rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,236,.35);padding:.1rem .45rem;border:1px solid rgba(244,241,236,.1);border-radius:100px;}
+.mini-link{position:absolute;inset:0;z-index:2;}
+.panel-start{margin-top:40px;padding-top:40px;border-top:1px solid rgba(14,13,11,.08);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.panel-start-txt{font-family:'Cormorant Garamond',serif;font-size:clamp(18px,2.5vw,28px);font-weight:400;font-style:italic;color:var(--muted);}
+
+/* ── SERVICES NAV STRIP ── */
+.srv-strip{padding:clamp(32px,4vw,48px) var(--px);background:var(--bone);border-top:1px solid rgba(14,13,11,.07);}
+.srv-strip-inner{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.srv-strip-label{font-size:.56rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--mid);margin-right:6px;}
+.srv-chip{display:inline-flex;font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:.32rem 1rem;border-radius:100px;border:1px solid rgba(14,13,11,.14);color:var(--muted);transition:background .22s,border-color .22s,color .22s;}
+.srv-chip:hover{background:var(--off);color:var(--ink);}
+.srv-chip.current{background:var(--ink);border-color:var(--ink);color:var(--bone);}
+
+/* FOOTER */
+footer{background:var(--ink);padding:clamp(60px,8vw,80px) var(--px) clamp(28px,4vw,40px);}
+.ft-g{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:clamp(48px,7vw,64px);}
+@media(min-width:960px){.ft-g{grid-template-columns:2fr 1fr 1fr 1fr;}}
+.ft-logo{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:400;color:var(--bone);display:block;margin-bottom:14px;}
+.ft-logo em{font-style:normal;color:var(--ember);}
+.ft-desc{font-size:.78rem;font-weight:500;line-height:1.78;color:rgba(244,241,236,.28);max-width:28ch;margin-bottom:22px;}
+.ft-socs{display:flex;gap:10px;}
+.ft-soc{width:34px;height:34px;border-radius:50%;border:1px solid rgba(244,241,236,.1);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:rgba(244,241,236,.3);transition:border-color .22s,color .22s;}
+.ft-soc:hover{border-color:var(--ember);color:var(--ember);}
+.ft-col h4{font-size:.56rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,241,236,.28);margin-bottom:18px;}
+.ft-col ul{list-style:none;display:flex;flex-direction:column;gap:9px;}
+.ft-col a{font-size:.76rem;font-weight:500;color:rgba(244,241,236,.38);transition:color .2s;}
+.ft-col a:hover{color:var(--bone);}
+.ft-bot{padding-top:22px;border-top:1px solid rgba(244,241,236,.07);display:flex;flex-direction:column;gap:6px;}
+@media(min-width:600px){.ft-bot{flex-direction:row;justify-content:space-between;align-items:center;}}
+.ft-copy,.ft-made{font-size:.68rem;font-weight:500;color:rgba(244,241,236,.18);}
+.ft-made em{font-style:normal;color:var(--ember);}
+
+/* ── HOMEPAGE EXTRAS: Case Studies Carousel ── */
+#work{background:var(--dark);position:relative;padding-bottom:var(--sy);}
+.work-hd{padding:var(--sy) var(--px) 48px;display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid rgba(244,241,236,.06);gap:16px;flex-wrap:wrap;}
+.work-title{font-family:'Cormorant Garamond',serif;font-size:clamp(34px,7vw,84px);font-weight:300;font-style:italic;color:var(--bone);line-height:.9;letter-spacing:-.02em;margin-top:12px;}
+.work-all{font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,236,.3);white-space:nowrap;padding-bottom:2px;border-bottom:1px solid transparent;transition:color .22s,border-color .22s;align-self:flex-end;}
+.work-all:hover{color:var(--bone);border-color:rgba(244,241,236,.35);}
+.work-carousel{padding:48px var(--px) 0;}.work-vp{overflow:hidden;}
+.work-track{display:flex;gap:14px;transition:transform .72s var(--ease);will-change:transform;}
+.cs-card{flex-shrink:0;width:calc(100vw - var(--px)*2);aspect-ratio:4/5;max-height:80vh;position:relative;overflow:hidden;background:#0a0908;cursor:pointer;}
+@media(min-width:640px){.cs-card{width:calc((100vw - var(--px)*2 - 14px)/2);aspect-ratio:3/4;max-height:none;}}
+@media(min-width:1024px){.cs-card{width:calc((100vw - var(--px)*2 - 28px)/3);aspect-ratio:3/4;}}
+.cs-img{position:absolute;inset:0;}
+.cs-img img{width:100%;height:100%;object-fit:cover;filter:grayscale(20%) brightness(.62);transition:filter 1s var(--ease),transform 1.1s var(--ease);}
+.cs-card:hover .cs-img img{filter:grayscale(0%) brightness(.8);transform:scale(1.04);}
+.cs-spot{position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(circle 240px at var(--sx,50%) var(--sy,50%),rgba(212,76,39,.16) 0%,rgba(14,13,11,.5) 100%);opacity:0;transition:opacity .38s;}
+.cs-card:hover .cs-spot{opacity:1;}
+.cs-info{position:absolute;bottom:0;left:0;right:0;z-index:2;padding:22px 20px 20px;background:linear-gradient(to top,rgba(14,13,11,.98) 0%,rgba(14,13,11,.6) 55%,transparent 100%);}
+.cs-cat{font-size:.56rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ember);margin-bottom:7px;display:block;}
+.cs-name{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,3vw,32px);font-weight:400;color:var(--bone);line-height:.95;letter-spacing:-.02em;margin-bottom:8px;}
+.cs-desc{font-size:.76rem;font-weight:500;color:rgba(244,241,236,.45);line-height:1.72;max-width:32ch;margin-bottom:12px;max-height:0;overflow:hidden;opacity:0;transition:max-height .42s var(--ease),opacity .38s;}
+.cs-card:hover .cs-desc{max-height:90px;opacity:1;}
+@media(hover:none){.cs-desc{max-height:90px;opacity:1;}}
+.cs-link{display:inline-flex;align-items:center;gap:6px;font-size:.58rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,236,.5);transition:color .28s;}
+.cs-card:hover .cs-link{color:var(--bone);}
+.cs-link svg{width:9px;height:9px;stroke:currentColor;fill:none;}
+.cs-num{position:absolute;top:14px;right:14px;z-index:2;font-size:.56rem;font-weight:700;letter-spacing:.14em;color:rgba(244,241,236,.18);}
+.work-ctrl{display:flex;align-items:center;justify-content:space-between;padding:0 var(--px);margin-top:24px;flex-wrap:wrap;gap:14px;}
+.work-count{font-family:'Cormorant Garamond',serif;font-size:1rem;font-style:italic;color:rgba(244,241,236,.3);}
+.work-count strong{color:rgba(244,241,236,.75);font-style:normal;font-weight:400;}
+.ctrl-r{display:flex;align-items:center;gap:16px;}.w-dots{display:flex;gap:6px;align-items:center;}
+.w-dot{width:5px;height:5px;border-radius:50%;background:rgba(244,241,236,.18);border:none;padding:0;cursor:pointer;transition:background .28s,width .32s var(--spring),border-radius .32s;}
+.w-dot.on{width:20px;border-radius:3px;background:var(--ember);}
+@media(max-width:479px){.w-dots{display:none;}}
+.w-arrows{display:flex;gap:8px;}
+.w-arr{width:42px;height:42px;border-radius:50%;border:1px solid rgba(244,241,236,.14);background:none;display:flex;align-items:center;justify-content:center;transition:background .22s,border-color .22s,transform .28s var(--spring);}
+.w-arr:hover{background:var(--ember);border-color:var(--ember);}
+.w-arr svg{width:13px;height:13px;stroke:rgba(244,241,236,.65);fill:none;transition:stroke .22s;}
+.w-arr:hover svg{stroke:var(--bone);}
+.w-arr:disabled{opacity:.3;pointer-events:none;}
+.work-more{display:flex;justify-content:center;padding-top:56px;}
+.work-more a{display:inline-flex;align-items:center;gap:12px;font-family:'Cormorant Garamond',serif;font-size:clamp(1rem,2vw,1.6rem);font-weight:300;font-style:italic;color:rgba(244,241,236,.5);padding:1rem 2.4rem;border:1px solid rgba(244,241,236,.13);border-radius:100px;transition:color .28s,border-color .28s,background .28s,transform .28s var(--ease);}
+.work-more a:hover{color:var(--bone);border-color:rgba(212,76,39,.45);background:rgba(212,76,39,.07);transform:scale(1.02);}
+.work-more svg{width:15px;height:15px;stroke:currentColor;fill:none;}
+/* Client Logos */
+#clients{padding:var(--sy) var(--px);background:var(--off);overflow:hidden;}
+.clients-head{display:flex;flex-direction:column;gap:8px;margin-bottom:clamp(40px,5vw,56px);}
+@media(min-width:768px){.clients-head{flex-direction:row;justify-content:space-between;align-items:flex-end;}}
+.clients-title{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,5vw,60px);font-weight:400;line-height:.9;letter-spacing:-.02em;margin-top:12px;}
+.clients-title em{font-style:italic;color:var(--muted);}
+.clients-sub{font-size:.82rem;font-weight:500;color:var(--muted);max-width:32ch;padding-bottom:4px;}
+.logos-strip{overflow:hidden;display:flex;position:relative;}
+.logos-strip::before,.logos-strip::after{content:'';position:absolute;top:0;bottom:0;width:80px;z-index:2;pointer-events:none;}
+.logos-strip::before{left:0;background:linear-gradient(to right,var(--off),transparent);}
+.logos-strip::after{right:0;background:linear-gradient(to left,var(--off),transparent);}
+.logos-row{display:flex;flex-shrink:0;align-items:center;animation:logoScroll 32s linear infinite;}
+@keyframes logoScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.logos-row.rv{animation-direction:reverse;}
+.logo-item{display:flex;align-items:center;justify-content:center;width:160px;height:72px;flex-shrink:0;border-right:1px solid rgba(14,13,11,.07);padding:0 24px;}
+.logo-text{font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-weight:500;letter-spacing:.04em;color:var(--muted);white-space:nowrap;transition:color .25s;}
+.logo-item:hover .logo-text{color:var(--ink);}
+.logos-second{border-top:1px solid rgba(14,13,11,.07);}
+/* Numbers */
+#numbers{background:var(--bone);border-top:1px solid rgba(14,13,11,.07);}
+.numbers-grid{display:grid;grid-template-columns:1fr 1fr;}
+@media(min-width:768px){.numbers-grid{grid-template-columns:repeat(4,1fr);}}
+.num-item{padding:clamp(32px,4vw,52px) clamp(16px,2.5vw,36px);border-right:1px solid rgba(14,13,11,.08);position:relative;overflow:hidden;}
+.num-item:last-child{border-right:none;}
+@media(max-width:767px){.num-item:nth-child(2n){border-right:none;}.num-item:nth-child(n+3){border-top:1px solid rgba(14,13,11,.08);}}
+.num-item::before{content:'';position:absolute;inset:0;background:var(--off);transform:scaleY(0);transform-origin:bottom;transition:transform .45s var(--ease);z-index:0;}
+.num-item:hover::before{transform:scaleY(1);}
+.num-item>*{position:relative;z-index:1;}
+.num-val{font-family:'Cormorant Garamond',serif;font-size:clamp(52px,8vw,100px);font-weight:300;line-height:.9;letter-spacing:-.03em;color:var(--ink);display:flex;align-items:baseline;gap:.05em;}
+.nsuf{font-size:.45em;color:var(--ember);font-weight:400;}
+.num-label{font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:14px;line-height:1.5;}
+/* Process */
+#process{padding:var(--sy) var(--px);background:var(--ink);position:relative;overflow:hidden;}
+#process::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 78% 50%,rgba(212,76,39,.04) 0%,transparent 58%);pointer-events:none;}
+.proc-hd{display:flex;flex-direction:column;gap:10px;margin-bottom:clamp(48px,6vw,72px);}
+@media(min-width:860px){.proc-hd{flex-direction:row;justify-content:space-between;align-items:flex-end;}}
+.proc-title{font-family:'Cormorant Garamond',serif;font-size:clamp(34px,6vw,76px);font-weight:300;line-height:.9;letter-spacing:-.02em;color:var(--bone);margin-top:12px;}
+.proc-title em{font-style:italic;color:var(--ember);}
+.proc-note{font-size:.78rem;font-weight:500;line-height:1.8;color:rgba(244,241,236,.28);max-width:30ch;padding-bottom:4px;}
+.proc-steps{display:flex;flex-direction:column;}
+.proc-step{display:grid;grid-template-columns:52px 1fr;gap:0;padding:clamp(28px,4vw,48px) 0;border-top:1px solid rgba(244,241,236,.06);position:relative;transition:padding-left .38s var(--ease);}
+.proc-step:last-child{border-bottom:1px solid rgba(244,241,236,.06);}
+.proc-step:hover{padding-left:10px;}
+@media(min-width:860px){.proc-step{grid-template-columns:110px 1fr 1fr;gap:36px;align-items:start;}}
+.proc-left{display:flex;flex-direction:column;align-items:flex-start;padding-right:16px;}
+@media(min-width:860px){.proc-left{border-right:1px solid rgba(244,241,236,.07);padding-right:0;min-width:90px;}}
+.proc-n{font-family:'Cormorant Garamond',serif;font-size:clamp(1.8rem,3.5vw,3rem);font-weight:300;color:rgba(244,241,236,.1);line-height:1;transition:color .38s var(--ease);}
+.proc-step:hover .proc-n{color:var(--ember);}
+.proc-icon{display:none;width:30px;height:30px;margin-top:14px;align-items:center;justify-content:center;}
+@media(min-width:860px){.proc-icon{display:flex;}}
+.proc-icon svg{width:17px;height:17px;stroke:rgba(244,241,236,.18);fill:none;stroke-width:1.3;transition:stroke .38s;}
+.proc-step:hover .proc-icon svg{stroke:var(--ember);}
+.proc-body{padding-left:16px;}
+@media(min-width:860px){.proc-body{padding-left:0;}}
+.proc-step-title{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,2.6vw,34px);font-weight:400;color:var(--bone);line-height:1;letter-spacing:-.01em;margin-bottom:12px;transition:color .28s;}
+.proc-step:hover .proc-step-title{color:var(--ember);}
+.proc-step-desc{font-size:.82rem;font-weight:500;line-height:1.85;color:rgba(244,241,236,.32);max-width:42ch;transition:color .38s;}
+.proc-step:hover .proc-step-desc{color:rgba(244,241,236,.5);}
+.proc-chips{display:none;}
+@media(min-width:860px){.proc-chips{display:flex;flex-wrap:wrap;gap:7px;align-items:flex-start;padding-top:4px;}}
+.proc-chip{font-size:.52rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,236,.22);padding:.2rem .68rem;border:1px solid rgba(244,241,236,.08);border-radius:100px;transition:border-color .32s,color .32s;}
+.proc-step:hover .proc-chip{border-color:rgba(212,76,39,.28);color:rgba(212,76,39,.65);}
+/* Why */
+#why{padding:var(--sy) var(--px);background:var(--charcoal);}
+.why-inner{display:grid;grid-template-columns:1fr;gap:clamp(48px,8vw,80px);}
+@media(min-width:960px){.why-inner{grid-template-columns:5fr 7fr;gap:80px;}}
+.why-stick{}
+@media(min-width:960px){.why-stick{position:sticky;top:96px;}}
+.why-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,5vw,66px);font-weight:300;font-style:italic;color:var(--bone);line-height:.9;letter-spacing:-.02em;margin-top:12px;margin-bottom:20px;}
+.why-sub{font-size:.84rem;font-weight:500;line-height:1.85;color:rgba(244,241,236,.38);max-width:34ch;}
+.why-stats{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:clamp(32px,5vw,48px);}
+.why-stat{padding-left:14px;border-left:2px solid var(--ember);}
+.why-stat-n{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,4vw,3rem);font-weight:300;color:var(--bone);display:block;line-height:1;margin-bottom:4px;}
+.why-stat-l{font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,236,.28);font-weight:700;}
+.why-list{border-top:1px solid rgba(244,241,236,.07);}
+.why-row{padding:clamp(20px,3vw,30px) 0;border-bottom:1px solid rgba(244,241,236,.07);transition:padding-left .32s var(--ease);}
+.why-row:hover{padding-left:8px;}
+.why-rh{display:flex;justify-content:space-between;align-items:center;gap:12px;}
+.why-rt{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,2.8vw,34px);font-weight:400;color:var(--bone);transition:color .28s;flex:1;}
+.why-row:hover .why-rt{color:var(--ember);}
+.why-rn{font-size:.56rem;letter-spacing:.12em;color:rgba(244,241,236,.2);font-weight:700;flex-shrink:0;}
+.why-rb{font-size:.82rem;font-weight:500;line-height:1.82;color:rgba(244,241,236,.38);max-width:44ch;margin-top:10px;}
+/* Reviews */
+#reviews{padding:var(--sy) var(--px) clamp(40px,5vw,64px);background:var(--bone);}
+.rev-hd{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:clamp(36px,5vw,56px);flex-wrap:wrap;gap:14px;}
+.rev-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,6vw,76px);font-weight:300;line-height:.9;letter-spacing:-.02em;margin-top:12px;}
+.rev-title em{font-style:italic;color:var(--muted);}
+.rev-stars-block{text-align:right;}
+.rev-stars{color:var(--ember);font-size:.85rem;letter-spacing:2px;margin-bottom:4px;}
+.rev-count{font-size:.66rem;font-weight:600;color:var(--mid);}
+.rev-vp{overflow:hidden;}
+.rev-track{display:flex;gap:14px;transition:transform .68s var(--ease);will-change:transform;}
+.rev-card{flex-shrink:0;width:calc(100vw - var(--px)*2);padding:clamp(24px,3.5vw,36px) clamp(20px,3vw,30px);background:var(--off);border:1px solid transparent;transition:border-color .38s,transform .38s var(--ease);}
+@media(min-width:600px){.rev-card{width:calc((100vw - var(--px)*2 - 14px)/2);}}
+@media(min-width:1060px){.rev-card{width:calc((100vw - var(--px)*2 - 42px)/3);}}
+.rev-card:hover{border-color:var(--ember);transform:translateY(-3px);}
+.rev-star{color:var(--ember);font-size:.78rem;letter-spacing:2px;margin-bottom:16px;}
+.rev-text{font-family:'Cormorant Garamond',serif;font-size:clamp(.9rem,1.4vw,1.1rem);font-weight:400;font-style:italic;line-height:1.7;color:var(--ink);margin-bottom:24px;}
+.rev-author{display:flex;align-items:center;gap:12px;}
+.rev-av{width:38px;height:38px;border-radius:50%;background:var(--parchm);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:var(--ink);flex-shrink:0;}
+.rev-name{font-size:.8rem;font-weight:700;color:var(--ink);}
+.rev-role{font-size:.62rem;color:var(--mid);margin-top:2px;font-weight:500;}
+.rev-ctrl{display:flex;align-items:center;justify-content:space-between;margin-top:28px;flex-wrap:wrap;gap:12px;}
+.r-dots{display:flex;gap:6px;align-items:center;}
+.r-dot{width:5px;height:5px;border-radius:50%;background:var(--parchm);border:none;padding:0;cursor:pointer;transition:background .28s,width .32s var(--spring),border-radius .32s;}
+.r-dot.on{width:20px;border-radius:3px;background:var(--ink);}
+.r-arrows{display:flex;gap:8px;}
+.r-arr{width:42px;height:42px;border-radius:50%;border:1px solid rgba(14,13,11,.14);background:none;display:flex;align-items:center;justify-content:center;transition:background .22s,border-color .22s;}
+.r-arr:hover{background:var(--ink);border-color:var(--ink);}
+.r-arr svg{width:13px;height:13px;stroke:var(--ink);fill:none;transition:stroke .22s;}
+.r-arr:hover svg{stroke:var(--bone);}
+.r-arr:disabled{opacity:.3;pointer-events:none;}
+.rev-write-cta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-top:40px;padding-top:36px;border-top:1px solid rgba(14,13,11,.08);}
+.rev-write-txt{font-size:.84rem;font-weight:500;line-height:1.75;color:var(--muted);max-width:36ch;}
+.rfm-fold{height:0;overflow:hidden;transition:height .75s var(--ease);}
+.rfm-fold-inner{padding:48px 0 0;}
+.rfm-form-grid{display:grid;grid-template-columns:1fr;gap:20px;}
+@media(min-width:640px){.rfm-form-grid{grid-template-columns:1fr 1fr;}}
+.rfm-field{display:flex;flex-direction:column;gap:8px;}.rfm-field.full{grid-column:1/-1;}
+.rfm-label{font-size:.56rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);}
+.rfm-input,.rfm-textarea,.rfm-select{width:100%;background:var(--off);border:1px solid rgba(14,13,11,.12);border-radius:0;padding:.88rem 1rem;font-family:'Syne',sans-serif;font-size:.8rem;font-weight:500;color:var(--ink);outline:none;transition:border-color .22s,box-shadow .22s;-webkit-appearance:none;appearance:none;}
+.rfm-input:focus,.rfm-textarea:focus,.rfm-select:focus{border-color:var(--ember);box-shadow:0 0 0 3px rgba(212,76,39,.08);}
+.rfm-textarea{resize:vertical;min-height:120px;line-height:1.7;}
+.rfm-select{background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%236e6860' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 1rem center;background-size:16px;padding-right:2.5rem;}
+.rfm-stars-field{display:flex;gap:8px;align-items:center;}
+.rfm-star-btn{font-size:1.4rem;background:none;border:none;color:var(--parchm);transition:color .18s,transform .18s;cursor:pointer;}
+.rfm-star-btn.active{color:var(--ember);}
+.rfm-submit-row{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:8px;}
+.rfm-privacy{font-size:.62rem;color:var(--mid);line-height:1.6;}
+.rfm-success{display:none;padding:24px 28px;background:var(--off);border:1px solid rgba(14,13,11,.1);text-align:center;}
+.rfm-success.show{display:block;}
+.rfm-success h4{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:400;margin-bottom:8px;}
+.rfm-success p{font-size:.8rem;color:var(--muted);}
+/* About */
+#about{padding:var(--sy) var(--px);background:var(--ink);}
+.about-g{display:grid;grid-template-columns:1fr;gap:clamp(48px,7vw,72px);}
+@media(min-width:860px){.about-g{grid-template-columns:1fr 1fr;gap:72px;align-items:start;}}
+.about-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,5vw,66px);font-weight:300;font-style:italic;color:var(--bone);line-height:.9;letter-spacing:-.02em;margin-top:12px;margin-bottom:24px;}
+.about-body p{font-size:.84rem;font-weight:500;line-height:1.88;color:rgba(244,241,236,.42);margin-bottom:18px;}
+.about-q{margin:28px 0;padding:24px 24px 24px 20px;border-left:2px solid var(--ember);background:rgba(244,241,236,.03);}
+.about-q p{font-family:'Cormorant Garamond',serif;font-size:1.08rem;font-style:italic;color:var(--bone)!important;margin:0 0 7px!important;line-height:1.5;}
+.about-q cite{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ember);font-weight:700;}
+.about-stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(244,241,236,.06);border:1px solid rgba(244,241,236,.06);}
+.about-sb{background:rgba(14,13,11,.6);padding:clamp(22px,3vw,30px) clamp(18px,2.5vw,26px);}
+.about-sn{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,4vw,3.2rem);font-weight:300;color:var(--bone);display:block;margin-bottom:6px;}
+.about-sl{font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,236,.28);font-weight:700;}
+.about-founder{display:flex;align-items:center;gap:14px;margin-top:28px;padding:20px;background:rgba(244,241,236,.04);border:1px solid rgba(244,241,236,.08);}
+.about-fav{width:44px;height:44px;border-radius:50%;background:var(--ember);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:var(--bone);flex-shrink:0;}
+.about-fn{font-size:.8rem;font-weight:700;color:var(--bone);}
+.about-fr{font-size:.62rem;color:rgba(244,241,236,.32);margin-top:3px;font-weight:500;}
+/* CTA */
+#cta{padding:clamp(80px,12vw,130px) var(--px) var(--sy);background:var(--bone);text-align:center;position:relative;overflow:hidden;}
+.cta-bg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Cormorant Garamond',serif;font-size:clamp(80px,16vw,220px);font-weight:300;color:transparent;-webkit-text-stroke:1px rgba(14,13,11,.045);white-space:nowrap;pointer-events:none;line-height:1;letter-spacing:-.03em;user-select:none;}
+.cta-inner{position:relative;z-index:1;}
+.cta-title{font-family:'Cormorant Garamond',serif;font-size:clamp(36px,7.5vw,108px);font-weight:300;line-height:.9;letter-spacing:-.025em;margin-top:18px;margin-bottom:20px;}
+.cta-title em{font-style:italic;color:var(--ember);}
+.cta-sub{font-size:.84rem;font-weight:500;line-height:1.85;color:var(--muted);max-width:46ch;margin:0 auto 40px;}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.cta-badge{display:none;position:absolute;bottom:clamp(40px,5vw,60px);right:var(--px);width:104px;height:104px;animation:spin 22s linear infinite;}
+@media(min-width:1100px){.cta-badge{display:flex;align-items:center;justify-content:center;}}
+.cta-badge svg{position:absolute;inset:0;}
+.cta-bc{width:34px;height:34px;border-radius:50%;border:1px solid var(--parchm);display:flex;align-items:center;justify-content:center;}
+.cta-bc svg{position:static;width:12px;height:12px;stroke:var(--ink);fill:none;}
+/* Footer */
+footer{background:var(--ink);padding:clamp(60px,8vw,80px) var(--px) clamp(28px,4vw,40px);}
+.ft-g{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:clamp(48px,7vw,64px);}
+@media(min-width:640px){.ft-g{grid-template-columns:repeat(2,1fr);}}
+@media(min-width:960px){.ft-g{grid-template-columns:2fr 1fr 1fr 1fr;}}
+.ft-logo{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:400;color:var(--bone);display:block;margin-bottom:14px;}
+.ft-logo em{font-style:normal;color:var(--ember);}
+.ft-desc{font-size:.78rem;font-weight:500;line-height:1.78;color:rgba(244,241,236,.28);max-width:28ch;margin-bottom:22px;}
+.ft-socs{display:flex;gap:10px;}
+.ft-soc{width:34px;height:34px;border-radius:50%;border:1px solid rgba(244,241,236,.1);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:rgba(244,241,236,.3);transition:border-color .22s,color .22s;}
+.ft-soc:hover{border-color:var(--ember);color:var(--ember);}
+.ft-col h4{font-size:.56rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,241,236,.28);margin-bottom:18px;}
+.ft-col ul{list-style:none;display:flex;flex-direction:column;gap:9px;}
+.ft-col a{font-size:.76rem;font-weight:500;color:rgba(244,241,236,.38);transition:color .2s;}
+.ft-col a:hover{color:var(--bone);}
+.ft-bot{padding-top:22px;border-top:1px solid rgba(244,241,236,.07);display:flex;flex-direction:column;gap:6px;}
+@media(min-width:600px){.ft-bot{flex-direction:row;justify-content:space-between;align-items:center;}}
+.ft-copy,.ft-made{font-size:.68rem;font-weight:500;color:rgba(244,241,236,.18);}
+.ft-made em{font-style:normal;color:var(--ember);}
+/* CS Overlay */
+#csOverlay{position:fixed;inset:0;z-index:2000;background:var(--bone);overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .55s var(--ease);}
+#csOverlay.open{opacity:1;pointer-events:auto;}
+body.cs-open{overflow:hidden;}
+.cso-bar{position:sticky;top:0;z-index:10;background:rgba(244,241,236,.93);backdrop-filter:blur(20px);border-bottom:1px solid rgba(14,13,11,.07);height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 var(--px);}
+@media(min-width:768px){.cso-bar{height:68px;}}
+.cso-back{display:flex;align-items:center;gap:10px;font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);background:none;border:none;transition:color .2s;cursor:pointer;}
+.cso-back:hover{color:var(--ink);}
+.cso-back svg{width:14px;height:14px;stroke:currentColor;fill:none;}
+.cso-logo{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:500;letter-spacing:.06em;color:var(--ink);}
+.cso-logo em{font-style:normal;color:var(--ember);}
+.cso-start{font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.38rem 1rem;border-radius:100px;border:1px solid rgba(14,13,11,.2);transition:background .22s,color .22s;}
+.cso-start:hover{background:var(--ink);color:var(--bone);}
+.cso-hero-img{position:relative;height:clamp(340px,55vw,620px);overflow:hidden;background:var(--dark);}
+.cso-hero-img img{width:100%;height:100%;object-fit:cover;filter:brightness(.58);transition:transform 8s var(--ease);}
+#csOverlay.open .cso-hero-img img{transform:scale(1.04);}
+.cso-hero-over{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:var(--px);background:linear-gradient(to top,rgba(14,13,11,.9) 0%,rgba(14,13,11,.18) 60%,transparent 100%);}
+.cso-eyebrow{font-size:.58rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--ember);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.cso-eyebrow::before{content:'';width:18px;height:1px;background:var(--ember);}
+.cso-h1{font-family:'Cormorant Garamond',serif;font-size:clamp(36px,7vw,96px);font-weight:300;color:var(--bone);line-height:.88;letter-spacing:-.025em;margin-bottom:20px;}
+.cso-meta{display:flex;gap:24px;flex-wrap:wrap;}
+.cso-meta-item{display:flex;flex-direction:column;gap:4px;}
+.cso-meta-label{font-size:.5rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,236,.35);}
+.cso-meta-val{font-size:.78rem;font-weight:600;color:rgba(244,241,236,.7);}
+.cso-body{max-width:1200px;margin:0 auto;padding:clamp(48px,6vw,80px) var(--px);}
+.cso-intro{display:grid;grid-template-columns:1fr;gap:48px;margin-bottom:clamp(56px,8vw,96px);}
+@media(min-width:860px){.cso-intro{grid-template-columns:1fr 1fr;gap:72px;align-items:start;}}
+.cso-lead{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,2.8vw,32px);font-weight:400;line-height:1.35;letter-spacing:-.01em;}
+.cso-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;}
+.cso-tag{font-size:.54rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:.22rem .75rem;border:1px solid rgba(14,13,11,.14);border-radius:100px;}
+.cso-desc-txt{font-size:.84rem;font-weight:500;line-height:1.9;color:var(--muted);}
+.cso-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(14,13,11,.08);border:1px solid rgba(14,13,11,.08);margin-bottom:clamp(56px,8vw,96px);}
+@media(max-width:540px){.cso-metrics{grid-template-columns:1fr 1fr;}.cso-metric:last-child{grid-column:1/-1;}}
+.cso-metric{background:var(--bone);padding:clamp(24px,3.5vw,40px) clamp(20px,3vw,36px);}
+.cso-metric-n{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,4vw,3.4rem);font-weight:300;color:var(--ember);line-height:1;margin-bottom:6px;}
+.cso-metric-l{font-size:.6rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+.cso-section{margin-bottom:clamp(56px,8vw,96px);}
+.cso-sec-label{font-size:.58rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.cso-sec-label::before{content:'';width:18px;height:1px;background:var(--parchm);flex-shrink:0;}
+.cso-sec-title{font-family:'Cormorant Garamond',serif;font-size:clamp(22px,3.5vw,44px);font-weight:400;line-height:.95;letter-spacing:-.015em;margin-bottom:20px;}
+.cso-sec-body{font-size:.85rem;font-weight:500;line-height:1.88;color:var(--muted);max-width:68ch;}
+.cso-fullimg{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;margin:clamp(32px,4vw,56px) 0;}
+.cso-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:clamp(28px,4vw,48px) 0;}
+@media(max-width:540px){.cso-2col{grid-template-columns:1fr;}}
+.cso-2col img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;}
+.cso-quote{padding:clamp(28px,4vw,48px);border-left:3px solid var(--ember);background:var(--off);margin:clamp(40px,5vw,64px) 0;}
+.cso-quote p{font-family:'Cormorant Garamond',serif;font-size:clamp(1.1rem,2vw,1.5rem);font-style:italic;line-height:1.5;color:var(--ink);margin-bottom:12px;}
+.cso-quote cite{font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ember);}
+.cso-gallery-wrap{margin-bottom:clamp(56px,8vw,96px);}
+.cso-gallery-head{margin-bottom:24px;}
+.cso-gallery-title{font-family:'Cormorant Garamond',serif;font-size:clamp(22px,3vw,36px);font-weight:400;line-height:1;}
+.cso-gallery-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+@media(min-width:640px){.cso-gallery-grid{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:1024px){.cso-gallery-grid{grid-template-columns:repeat(4,1fr);}}
+.cso-gal-item{position:relative;overflow:hidden;aspect-ratio:1;background:var(--off);cursor:pointer;}
+.cso-gal-item.wide{grid-column:span 2;}
+.cso-gal-item img{width:100%;height:100%;object-fit:cover;transition:transform .8s var(--ease),filter .4s;}
+.cso-gal-item:hover img{transform:scale(1.06);filter:brightness(.82);}
+.gal-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;background:rgba(14,13,11,.3);transition:opacity .3s;}
+.cso-gal-item:hover .gal-ov{opacity:1;}
+.gal-ov svg{width:24px;height:24px;stroke:var(--bone);fill:none;}
+.cso-end{padding:clamp(48px,6vw,80px) 0;text-align:center;border-top:1px solid rgba(14,13,11,.08);}
+.cso-end h3{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,5vw,64px);font-weight:300;letter-spacing:-.02em;margin-bottom:16px;}
+.cso-end h3 em{font-style:italic;color:var(--ember);}
+.cso-end p{font-size:.84rem;font-weight:500;color:var(--muted);margin-bottom:32px;}
+.cso-end-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+/* Lightbox */
+#galLightbox{position:fixed;inset:0;z-index:3000;background:rgba(14,13,11,.97);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s;}
+#galLightbox.open{opacity:1;pointer-events:auto;}
+#galImg{max-width:90vw;max-height:88vh;object-fit:contain;display:block;}
+.gal-lb-close{position:absolute;top:20px;right:24px;background:none;border:none;color:rgba(244,241,236,.6);font-size:1.6rem;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:color .2s;}
+.gal-lb-close:hover{color:var(--bone);}
+.gal-lb-prev,.gal-lb-next{position:absolute;top:50%;transform:translateY(-50%);background:rgba(244,241,236,.08);border:1px solid rgba(244,241,236,.12);width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .22s;}
+.gal-lb-prev{left:20px;}.gal-lb-next{right:20px;}
+.gal-lb-prev:hover,.gal-lb-next:hover{background:var(--ember);border-color:var(--ember);}
+.gal-lb-prev svg,.gal-lb-next svg{width:14px;height:14px;stroke:rgba(244,241,236,.7);fill:none;}
+.gal-lb-prev:hover svg,.gal-lb-next:hover svg{stroke:var(--bone);}
+/* Hero Geo Canvas */
+#hero{min-height:100svh;display:flex;flex-direction:column;padding:0 var(--px);background:var(--bone);position:relative;overflow:hidden;}
+.hero-grain{position:absolute;inset:0;pointer-events:none;opacity:.022;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n2'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n2)'/%3E%3C/svg%3E");}
+.hero-body{flex:1;display:grid;grid-template-columns:1fr;padding-top:80px;padding-bottom:32px;align-items:end;}
+@media(min-width:900px){.hero-body{grid-template-columns:1fr 1fr;align-items:center;padding-top:100px;}}
+.hero-left{display:flex;flex-direction:column;justify-content:flex-end;}
+.hero-eyebrow{display:flex;justify-content:space-between;align-items:center;margin-bottom:clamp(24px,4vw,44px);flex-wrap:wrap;gap:10px;}
+.hero-badge{display:inline-flex;align-items:center;gap:7px;font-size:.58rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:.38rem .9rem;border:1px solid var(--parchm);border-radius:100px;}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0;animation:blink 2.4s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.5)}}
+.hero-est{font-size:.58rem;color:var(--mid);letter-spacing:.1em;font-weight:600;}
+.hero-hl{font-family:'Cormorant Garamond',serif;font-size:clamp(48px,10vw,140px);font-weight:400;line-height:.86;letter-spacing:-.025em;}
+.hero-hl .it{font-style:italic;}.hero-hl .ol{color:transparent;-webkit-text-stroke:1.5px rgba(14,13,11,.18);}.hero-hl .em{color:var(--ember);}
+.hero-hr{border:none;border-top:1px solid rgba(14,13,11,.1);margin:28px 0 0;}
+.hero-foot{padding:24px 0;display:flex;flex-direction:column;gap:20px;opacity:0;transform:translateY(14px);transition:opacity .85s .7s var(--ease),transform .85s .7s var(--ease);}
+.hero-foot.vis{opacity:1;transform:none;}
+@media(min-width:600px){.hero-foot{flex-direction:row;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}}
+.hero-desc{font-size:.84rem;font-weight:500;line-height:1.8;color:var(--muted);max-width:40ch;}
+.hero-right{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.hero-stats{display:flex;gap:20px;}
+.hs-n{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:400;line-height:1;}
+.hs-l{font-size:.52rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mid);margin-top:3px;}
+.hero-geo{display:none;position:relative;width:100%;height:500px;align-items:center;justify-content:center;}
+@media(min-width:900px){.hero-geo{display:flex;}}
+#geoCanvas{position:absolute;inset:0;width:100%;height:100%;}
+.hero-rot{display:none;position:absolute;bottom:100px;right:var(--px);width:90px;height:90px;}
+@media(min-width:1100px){.hero-rot{display:block;}}
+.hr-ring{animation:spin 20s linear infinite;}
+.hr-dot{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;border:1px solid var(--parchm);display:flex;align-items:center;justify-content:center;}
+.hr-dot svg{width:10px;height:10px;stroke:var(--ink);fill:none;}
+.mq-strip{padding:16px 0;background:var(--ink);overflow:hidden;display:flex;}
+.mq-row{display:flex;flex-shrink:0;align-items:center;animation:mqScroll 28s linear infinite;}
+.mq-item{font-family:'Cormorant Garamond',serif;font-size:clamp(1.4rem,3.5vw,2.6rem);font-weight:300;font-style:italic;color:rgba(255,255,255,.3);white-space:nowrap;padding:0 28px;}
+.mq-sep{color:rgba(212,76,39,.5);font-size:.45rem;flex-shrink:0;}
+@keyframes mqScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ── NAV & HERO FIXES ── */
+:root{--nav-h:68px;}
+@media(max-width:767px){:root{--nav-h:60px;}}
+
+/* Fix submenu: bridge gap between link and dropdown so mouse doesn't lose hover */
+.nav-item::after{
+  content:'';position:absolute;
+  top:100%;left:0;right:0;
+  height:20px; /* bridges the gap */
+  background:transparent;
+}
+.nav-drop{
+  top:calc(100% + 1px); /* reduced gap, relies on ::after for bridge */
+}
+/* Ensure dropdown is above everything */
+.nav-item:hover .nav-drop{
+  pointer-events:auto;
+  z-index:600;
+}
+.nav-drop a{
+  pointer-events:auto;
+  cursor:pointer;
+}
+
+/* ── Hero spacing fix: always leave room for fixed nav ── */
+.pg-hero{padding-top:calc(var(--nav-h) + 24px);}
+#hero{padding-top:var(--nav-h);}
+.cs-hero{padding-top:var(--nav-h);}
+.post-layout{padding-top:0;}
+
+/* ── Fix TOC sidebar top offset in case-study ── */
+.post-toc{top:var(--nav-h) !important;height:calc(100vh - var(--nav-h)) !important;}
+
+/* ── "View" label: keep it but move it away from nav area ── */
+#curLbl{
+  position:fixed !important;
+  top:auto !important;
+  pointer-events:none;
+  z-index:9996;
+  font-size:.56rem;
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--ink);
+  background:var(--bone);
+  border:1px solid rgba(14,13,11,.1);
+  padding:.28rem .7rem;
+  border-radius:100px;
+  white-space:nowrap;
+  opacity:0;
+  transform:translate(-50%,14px);
+  transition:opacity .22s,transform .22s;
+}
+#curLbl.vis{opacity:1;transform:translate(-50%,18px);}
+
+
+/* ── Services & Expertise: panel spacing & alignment fixes ── */
+.srv-panel-inner{padding:clamp(24px,3vw,40px) 0 clamp(40px,6vw,64px);}
+.srv-panel-inner .panel-top{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:32px;
+  margin-bottom:40px;
+  align-items:start;
+}
+@media(min-width:768px){
+  .srv-panel-inner .panel-top{grid-template-columns:3fr 2fr;gap:56px;}
+}
+.panel-about{padding-right:0;}
+.panel-about h4{
+  font-size:clamp(20px,2.6vw,32px);
+  line-height:1.1;
+  margin-bottom:14px;
+}
+.panel-deliverables{
+  background:var(--off);
+  padding:24px 22px;
+  border-radius:2px;
+}
+.panel-deliverables h5{margin-bottom:14px;}
+.panel-deliverables li{padding:6px 0;border-bottom:1px solid rgba(14,13,11,.05);}
+.panel-deliverables li:last-child{border-bottom:none;}
+
+.panel-cases-head{margin-top:4px;margin-bottom:20px;}
+.panel-cases-grid{gap:12px;}
+.mini-card{border-radius:2px;}
+.mini-info{padding:12px 12px 10px;}
+
+.panel-start{
+  margin-top:32px;padding-top:32px;
+  flex-direction:column;align-items:flex-start;gap:14px;
+}
+@media(min-width:600px){
+  .panel-start{flex-direction:row;align-items:center;}
+}
+
+/* Row head: ensure number, name, tags, arrow align cleanly */
+.srv-row-head{
+  padding:clamp(16px,2vw,24px) 0;
+  column-gap:clamp(12px,2vw,24px);
+}
+.srv-num{min-width:28px;text-align:left;padding-right:0;}
+.srv-name{line-height:1.1;}
+
+</style>
+</head>
+<body>
+<div class="noise" aria-hidden="true"></div>
+<div id="prog" aria-hidden="true"></div>
+<!-- CURSOR -->
+<canvas id="curCanvas" aria-hidden="true"></canvas>
+<div id="cur3" aria-hidden="true">
+  <div id="curAtmo"></div>
+  <div id="curRing"></div>
+  <div id="curOrb">
+    <div id="curNoise"></div>
+    <div id="curCorona"></div>
+  </div>
+</div>
+<div id="curTrail" aria-hidden="true"></div>
+<div id="curLbl" aria-hidden="true"></div>
+
+<nav id="nav">
+  <a href="index.html" class="logo">DC<em>.</em>ASEL</a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="#services" class="nav-link">Services<svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg></a>
+      <div class="nav-drop">
+        <a href="brand-identity.html">Brand Identity</a>
+        <a href="web-design.html">Web Design</a>
+        <a href="product-design.html">Product Design</a>
+        <a href="motion-design.html">Motion Design</a>
+        <a href="creative-direction.html">Creative Direction</a>
+      </div>
+    </div>
+    <a href="#work" class="nav-link">Work</a>
+    <div class="nav-item">
+      <a href="about.html" class="nav-link">Studio<svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg></a>
+      <div class="nav-drop">
+        <a href="about.html">About</a>
+        <div class="drop-div"></div>
+        <a href="process.html">Process</a>
+        <div class="drop-div"></div>
+        <a href="why-dcasel.html">Why Dcasel</a>
+      </div>
+    </div>
+  </div>
+  <a href="#cta" class="nav-cta">Start a Project</a>
+  <button class="ham" id="hamBtn" aria-label="Toggle menu" aria-expanded="false"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="mob" id="mobMenu" aria-hidden="true">
+  <nav class="mob-links">
+    <a href="#services" class="mm">Services</a>
+    <a href="#work" class="mm">Work</a>
+    <a href="about.html" class="mm">Studio</a>
+    <a href="process.html" class="mm">Process</a>
+    <a href="why-dcasel.html" class="mm">Why Dcasel</a>
+  </nav>
+  <a href="#cta" class="mob-btn mm">Start a Project &#x2192;</a>
+</div>
+
+<section id="hero">
+  <div class="hero-grain" aria-hidden="true"></div>
+  <div class="hero-body">
+    <div class="hero-left">
+      <div class="hero-eyebrow">
+        <div class="hero-badge"><span class="badge-dot"></span>Available for Projects</div>
+        <span class="hero-est">Est. 2016 &middot; Bengaluru</span>
+      </div>
+      <h1 class="hero-hl" aria-label="Design that moves business.">
+        <div class="clp d1"><span class="ci">Design</span></div>
+        <div class="clp d2" style="padding-left:6vw"><span class="ci it">that moves</span></div>
+        <div class="clp d3" style="display:flex;gap:.15em;align-items:baseline"><span class="ci ol">business</span><span class="ci em" style="font-style:normal;font-size:.68em">.</span></div>
+      </h1>
+      <hr class="hero-hr">
+      <div class="hero-foot" id="heroFoot">
+        <p class="hero-desc">A boutique design studio turning ambitious ideas into remarkable brand experiences and digital products.</p>
+        <div class="hero-right">
+          <div class="hero-stats">
+            <div><div class="hs-n">300+</div><div class="hs-l">Projects</div></div>
+            <div><div class="hs-n">9yr</div><div class="hs-l">Experience</div></div>
+          </div>
+          <a href="#cta" class="btn-p">Start a project <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </div>
+      </div>
+    </div>
+    <div class="hero-geo" aria-hidden="true"><canvas id="geoCanvas"></canvas></div>
+  </div>
+  <div class="hero-rot" aria-hidden="true">
+    <svg class="hr-ring" viewBox="0 0 90 90" width="90" height="90">
+      <defs><path id="rp" d="M45,8 a37,37 0 1,1 -0.001,0"/></defs>
+      <text fill="rgba(14,13,11,.28)" font-family="Syne,sans-serif" font-size="8" letter-spacing="3.8" font-weight="600"><textPath href="#rp">DESIGN STUDIO &middot; 2025 &middot;</textPath></text>
+    </svg>
+    <div class="hr-dot"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 5v14M5 12l7 7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  </div>
+</section>
+
+<div class="mq-strip" aria-hidden="true">
+  <div class="mq-row"><span class="mq-item">Brand Identity</span><span class="mq-sep">&bull;</span><span class="mq-item">Web Design</span><span class="mq-sep">&bull;</span><span class="mq-item">Product Design</span><span class="mq-sep">&bull;</span><span class="mq-item">Motion Design</span><span class="mq-sep">&bull;</span><span class="mq-item">Strategy</span><span class="mq-sep">&bull;</span><span class="mq-item">Creative Direction</span><span class="mq-sep">&bull;</span><span class="mq-item">Brand Identity</span><span class="mq-sep">&bull;</span><span class="mq-item">Web Design</span><span class="mq-sep">&bull;</span><span class="mq-item">Product Design</span><span class="mq-sep">&bull;</span><span class="mq-item">Motion Design</span><span class="mq-sep">&bull;</span><span class="mq-item">Strategy</span><span class="mq-sep">&bull;</span><span class="mq-item">Creative Direction</span><span class="mq-sep">&bull;</span></div>
+  <div class="mq-row" aria-hidden="true"><span class="mq-item">Brand Identity</span><span class="mq-sep">&bull;</span><span class="mq-item">Web Design</span><span class="mq-sep">&bull;</span><span class="mq-item">Product Design</span><span class="mq-sep">&bull;</span><span class="mq-item">Motion Design</span><span class="mq-sep">&bull;</span><span class="mq-item">Strategy</span><span class="mq-sep">&bull;</span><span class="mq-item">Creative Direction</span><span class="mq-sep">&bull;</span><span class="mq-item">Brand Identity</span><span class="mq-sep">&bull;</span><span class="mq-item">Web Design</span><span class="mq-sep">&bull;</span><span class="mq-item">Product Design</span><span class="mq-sep">&bull;</span><span class="mq-item">Motion Design</span><span class="mq-sep">&bull;</span><span class="mq-item">Strategy</span><span class="mq-sep">&bull;</span><span class="mq-item">Creative Direction</span><span class="mq-sep">&bull;</span></div>
+</div>
+<section id="services">
+  <div class="srv-head"><div><div class="sec-tag rev">What we do</div><h2 class="srv-title rev d1">Services<br><em>&amp; Expertise</em></h2></div><p class="srv-intro rev d2">We partner with founders and marketing teams to craft identities, interfaces, and experiences that make businesses genuinely unforgettable.</p></div>
+  <div class="srv-list">
+    <div class="srv-row rev" id="srv-brand">
+      <div class="srv-row-head">
+        <span class="srv-num">01</span>
+        <div class="srv-main"><span class="srv-name">Brand Identity</span><div class="srv-tags"><span class="srv-tag">Logos</span><span class="srv-tag">Systems</span><span class="srv-tag">Guidelines</span></div></div>
+        <div class="srv-arr"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="srv-panel"><div class="srv-panel-inner">
+        <div class="panel-top">
+          <div class="panel-about"><h4>Building marks that mean something.</h4><p>We create brand identities that go beyond a logo — a full system that expresses who you are, where you're going, and why it matters. From naming and positioning to typography and colour, every element is crafted to be unmistakable.</p></div>
+          <div class="panel-deliverables"><h5>Deliverables</h5><ul><li>Logo &amp; Mark System</li><li>Colour &amp; Typography</li><li>Brand Guidelines (100+ pages)</li><li>Stationery &amp; Collateral</li><li>Social &amp; Digital Assets</li></ul></div>
+        </div>
+        <div class="panel-cases-head"><h5>Related Case Studies</h5></div>
+        <div class="panel-cases-grid"><div class="mini-card" data-cs="vertex"><img src="https://images.unsplash.com/photo-1609921212029-bb5a28e60960?q=80&w=800&auto=format&fit=crop" alt="Vertex Technologies" loading="lazy"><div class="mini-info"><span class="mini-cat">Brand Identity &middot; 2024</span><h4 class="mini-name">Vertex Technologies</h4><div class="mini-exp"><span class="mini-exp-tag">Logos</span><span class="mini-exp-tag">Systems</span><span class="mini-exp-tag">Guidelines</span></div></div></div><div class="mini-card" data-cs="bloom"><img src="https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=800&auto=format&fit=crop" alt="Bloom Wellness" loading="lazy"><div class="mini-info"><span class="mini-cat">Brand + Web &middot; 2023</span><h4 class="mini-name">Bloom Wellness</h4><div class="mini-exp"><span class="mini-exp-tag">Logos</span><span class="mini-exp-tag">Systems</span></div></div></div><div class="mini-card" data-cs="zenith"><img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop" alt="Zenith Capital" loading="lazy"><div class="mini-info"><span class="mini-cat">UX Design &middot; 2022</span><h4 class="mini-name">Zenith Capital</h4><div class="mini-exp"><span class="mini-exp-tag">Guidelines</span><span class="mini-exp-tag">Collateral</span></div></div></div></div>
+        <div class="panel-start"><p class="panel-start-txt">Ready to build something unforgettable?</p><a href="#cta" class="btn-ember">Start a Brand Project <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+      </div></div>
+    </div>
+    <div class="srv-row rev d1" id="srv-web">
+      <div class="srv-row-head">
+        <span class="srv-num">02</span>
+        <div class="srv-main"><span class="srv-name">Web Design</span><div class="srv-tags"><span class="srv-tag">UI/UX</span><span class="srv-tag">Webflow</span><span class="srv-tag">React</span></div></div>
+        <div class="srv-arr"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="srv-panel"><div class="srv-panel-inner">
+        <div class="panel-top">
+          <div class="panel-about"><h4>Websites that convert, not just impress.</h4><p>We design and build web experiences that are as performant as they are beautiful. From Webflow marketing sites to full React applications — every detail from UX strategy to final pixel.</p></div>
+          <div class="panel-deliverables"><h5>Deliverables</h5><ul><li>UX Research &amp; Wireframes</li><li>Visual Design (Figma)</li><li>Webflow / React Development</li><li>CMS Integration</li><li>SEO &amp; Performance Audit</li></ul></div>
+        </div>
+        <div class="panel-cases-head"><h5>Related Case Studies</h5></div>
+        <div class="panel-cases-grid"><div class="mini-card" data-cs="horizon"><img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=800&auto=format&fit=crop" alt="Horizon Inc." loading="lazy"><div class="mini-info"><span class="mini-cat">Web Platform &middot; 2024</span><h4 class="mini-name">Horizon Inc.</h4><div class="mini-exp"><span class="mini-exp-tag">UI/UX</span><span class="mini-exp-tag">React</span><span class="mini-exp-tag">Webflow</span></div></div></div><div class="mini-card" data-cs="nova"><img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop" alt="Nova SaaS" loading="lazy"><div class="mini-info"><span class="mini-cat">SaaS Design &middot; 2022</span><h4 class="mini-name">Nova SaaS</h4><div class="mini-exp"><span class="mini-exp-tag">UI/UX</span><span class="mini-exp-tag">React</span></div></div></div></div>
+        <div class="panel-start"><p class="panel-start-txt">Let's build your next web experience.</p><a href="#cta" class="btn-ember">Start a Web Project <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+      </div></div>
+    </div>
+    <div class="srv-row rev d2" id="srv-product">
+      <div class="srv-row-head">
+        <span class="srv-num">03</span>
+        <div class="srv-main"><span class="srv-name">Product Design</span><div class="srv-tags"><span class="srv-tag">UX Research</span><span class="srv-tag">Prototypes</span><span class="srv-tag">Figma</span></div></div>
+        <div class="srv-arr"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="srv-panel"><div class="srv-panel-inner">
+        <div class="panel-top">
+          <div class="panel-about"><h4>Products people actually want to use.</h4><p>We embed with product teams to design experiences that reduce friction and increase engagement. From zero-to-one startups to scaling platforms with 50,000+ users — research-rooted, testing-validated.</p></div>
+          <div class="panel-deliverables"><h5>Deliverables</h5><ul><li>UX Research &amp; Heuristic Audit</li><li>User Journey Mapping</li><li>Wireframes &amp; Prototypes</li><li>Design System (Figma)</li><li>Usability Testing Reports</li></ul></div>
+        </div>
+        <div class="panel-cases-head"><h5>Related Case Studies</h5></div>
+        <div class="panel-cases-grid"><div class="mini-card" data-cs="nexus"><img src="https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=800&auto=format&fit=crop" alt="Nexus App" loading="lazy"><div class="mini-info"><span class="mini-cat">Product Design &middot; 2023</span><h4 class="mini-name">Nexus App</h4><div class="mini-exp"><span class="mini-exp-tag">UX Research</span><span class="mini-exp-tag">Prototypes</span><span class="mini-exp-tag">Figma</span></div></div></div><div class="mini-card" data-cs="prism"><img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800&auto=format&fit=crop" alt="Prism Analytics" loading="lazy"><div class="mini-info"><span class="mini-cat">Dashboard UI &middot; 2023</span><h4 class="mini-name">Prism Analytics</h4><div class="mini-exp"><span class="mini-exp-tag">UX Research</span><span class="mini-exp-tag">Figma</span></div></div></div></div>
+        <div class="panel-start"><p class="panel-start-txt">Ready to design your product?</p><a href="#cta" class="btn-ember">Start a Product Project <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+      </div></div>
+    </div>
+    <div class="srv-row rev d3" id="srv-motion">
+      <div class="srv-row-head">
+        <span class="srv-num">04</span>
+        <div class="srv-main"><span class="srv-name">Motion Design</span><div class="srv-tags"><span class="srv-tag">Animation</span><span class="srv-tag">After Effects</span><span class="srv-tag">Explainers</span></div></div>
+        <div class="srv-arr"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="srv-panel"><div class="srv-panel-inner">
+        <div class="panel-top">
+          <div class="panel-about"><h4>Motion that tells the story.</h4><p>From micro-interactions to full brand films, we use motion to bring ideas to life. Our motion design makes complex ideas simple, products feel premium, and brands unforgettable.</p></div>
+          <div class="panel-deliverables"><h5>Deliverables</h5><ul><li>Brand Animations &amp; Intros</li><li>Product Demo Videos</li><li>Lottie / CSS Micro-interactions</li><li>Explainer Videos</li><li>Social Motion Assets</li></ul></div>
+        </div>
+        <div class="panel-cases-head"><h5>Related Case Studies</h5></div>
+        <div class="panel-cases-grid"><div class="mini-card" data-cs="vertex"><img src="https://images.unsplash.com/photo-1609921212029-bb5a28e60960?q=80&w=800&auto=format&fit=crop" alt="Vertex Brand Film" loading="lazy"><div class="mini-info"><span class="mini-cat">Motion &middot; 2024</span><h4 class="mini-name">Vertex Brand Film</h4><div class="mini-exp"><span class="mini-exp-tag">Animation</span><span class="mini-exp-tag">After Effects</span></div></div></div></div>
+        <div class="panel-start"><p class="panel-start-txt">Bring your brand to life with motion.</p><a href="#cta" class="btn-ember">Start a Motion Project <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+      </div></div>
+    </div>
+    <div class="srv-row rev d4" id="srv-direction">
+      <div class="srv-row-head">
+        <span class="srv-num">05</span>
+        <div class="srv-main"><span class="srv-name">Creative Direction</span><div class="srv-tags"><span class="srv-tag">Campaigns</span><span class="srv-tag">Shoots</span><span class="srv-tag">Decks</span></div></div>
+        <div class="srv-arr"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="srv-panel"><div class="srv-panel-inner">
+        <div class="panel-top">
+          <div class="panel-about"><h4>The vision that makes it all coherent.</h4><p>Creative direction is the invisible thread that ties every touchpoint together. We work with leadership teams to define the vision, then lead execution — from campaigns to photo shoots, pitch decks to launch moments.</p></div>
+          <div class="panel-deliverables"><h5>Deliverables</h5><ul><li>Creative Strategy &amp; Brief</li><li>Campaign Concepts</li><li>Photography Art Direction</li><li>Pitch Decks &amp; Presentations</li><li>Launch Playbooks</li></ul></div>
+        </div>
+        <div class="panel-cases-head"><h5>Related Case Studies</h5></div>
+        <div class="panel-cases-grid"><div class="mini-card" data-cs="zenith"><img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop" alt="Zenith Capital" loading="lazy"><div class="mini-info"><span class="mini-cat">Creative Direction &middot; 2022</span><h4 class="mini-name">Zenith Capital</h4><div class="mini-exp"><span class="mini-exp-tag">Campaigns</span><span class="mini-exp-tag">Decks</span></div></div></div><div class="mini-card" data-cs="bloom"><img src="https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=800&auto=format&fit=crop" alt="Bloom Wellness" loading="lazy"><div class="mini-info"><span class="mini-cat">Creative Direction &middot; 2023</span><h4 class="mini-name">Bloom Wellness</h4><div class="mini-exp"><span class="mini-exp-tag">Shoots</span><span class="mini-exp-tag">Campaigns</span></div></div></div></div>
+        <div class="panel-start"><p class="panel-start-txt">Let's shape your creative vision together.</p><a href="#cta" class="btn-ember">Start a Creative Project <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<section id="clients">
+  <div class="clients-head">
+    <div><div class="sec-tag rev">Trusted by</div><h2 class="clients-title rev d1">Brands we've<br><em>worked with</em></h2></div>
+    <p class="clients-sub rev d2">From seed-stage startups to market leaders across 12+ industries.</p>
+  </div>
+  <div class="logos-strip"><div class="logos-row"><div class="logo-item"><span class="logo-text">Vertex Tech</span></div><div class="logo-item"><span class="logo-text">Horizon Inc.</span></div><div class="logo-item"><span class="logo-text">Nexus App</span></div><div class="logo-item"><span class="logo-text">Prism Analytics</span></div><div class="logo-item"><span class="logo-text">Bloom Wellness</span></div><div class="logo-item"><span class="logo-text">Zenith Capital</span></div><div class="logo-item"><span class="logo-text">Nova SaaS</span></div><div class="logo-item"><span class="logo-text">Strata Labs</span></div><div class="logo-item"><span class="logo-text">Pulse Health</span></div><div class="logo-item"><span class="logo-text">Arc Studio</span></div><div class="logo-item"><span class="logo-text">Vertex Tech</span></div><div class="logo-item"><span class="logo-text">Horizon Inc.</span></div><div class="logo-item"><span class="logo-text">Nexus App</span></div><div class="logo-item"><span class="logo-text">Prism Analytics</span></div><div class="logo-item"><span class="logo-text">Bloom Wellness</span></div><div class="logo-item"><span class="logo-text">Zenith Capital</span></div><div class="logo-item"><span class="logo-text">Nova SaaS</span></div><div class="logo-item"><span class="logo-text">Strata Labs</span></div><div class="logo-item"><span class="logo-text">Pulse Health</span></div><div class="logo-item"><span class="logo-text">Arc Studio</span></div></div></div>
+  <div class="logos-strip logos-second"><div class="logos-row rv"><div class="logo-item"><span class="logo-text">Kova Fintech</span></div><div class="logo-item"><span class="logo-text">Solaris Media</span></div><div class="logo-item"><span class="logo-text">Ember Brands</span></div><div class="logo-item"><span class="logo-text">Grid Systems</span></div><div class="logo-item"><span class="logo-text">Drift Labs</span></div><div class="logo-item"><span class="logo-text">Forma Studio</span></div><div class="logo-item"><span class="logo-text">Lynk Platform</span></div><div class="logo-item"><span class="logo-text">Sable Health</span></div><div class="logo-item"><span class="logo-text">Nucleus AI</span></div><div class="logo-item"><span class="logo-text">Crest Capital</span></div><div class="logo-item"><span class="logo-text">Kova Fintech</span></div><div class="logo-item"><span class="logo-text">Solaris Media</span></div><div class="logo-item"><span class="logo-text">Ember Brands</span></div><div class="logo-item"><span class="logo-text">Grid Systems</span></div><div class="logo-item"><span class="logo-text">Drift Labs</span></div><div class="logo-item"><span class="logo-text">Forma Studio</span></div><div class="logo-item"><span class="logo-text">Lynk Platform</span></div><div class="logo-item"><span class="logo-text">Sable Health</span></div><div class="logo-item"><span class="logo-text">Nucleus AI</span></div><div class="logo-item"><span class="logo-text">Crest Capital</span></div></div></div>
+</section>
+
+<section id="numbers">
+  <div class="numbers-grid">
+    <div class="num-item rev"><div class="num-val"><span class="nc-num" data-target="300">0</span><span class="nsuf">+</span></div><div class="num-label">Brand strategy<br>projects</div></div>
+    <div class="num-item rev d1"><div class="num-val"><span class="nc-num" data-target="2.5" data-decimal="1">0</span><span class="nsuf">m+</span></div><div class="num-label">Words written<br>(and counting)</div></div>
+    <div class="num-item rev d2"><div class="num-val"><span class="nc-num" data-target="115">0</span><span class="nsuf">+</span></div><div class="num-label">Websites<br>shipped</div></div>
+    <div class="num-item rev d3"><div class="num-val"><span class="nc-num" data-target="150">0</span><span class="nsuf">+</span></div><div class="num-label">Product design<br>projects</div></div>
+  </div>
+</section>
+
+<section id="work">
+  <div class="work-hd">
+    <div><div class="sec-tag rev dk" style="color:rgba(244,241,236,.35)">Selected Work</div><h2 class="work-title rev d1">Case Studies.</h2></div>
+    <a href="work.html" class="work-all rev d2">View all &#x2192;</a>
+  </div>
+  <div class="work-carousel"><div class="work-vp"><div class="work-track" id="workTrack"><article class="cs-card" data-cs="vertex"><div class="cs-img"><img src="https://images.unsplash.com/photo-1609921212029-bb5a28e60960?q=80&w=1200&auto=format&fit=crop" alt="Vertex<br>Technologies" loading="lazy"></div><div class="cs-spot" data-spot></div><span class="cs-num">01&thinsp;/&thinsp;07</span><div class="cs-info"><span class="cs-cat">Brand Identity &middot; 2024</span><h3 class="cs-name">Vertex<br>Technologies</h3><p class="cs-desc">Complete identity overhaul for a B2B SaaS entering Series B. Brand system tripled inbound leads.</p><span class="cs-link">View Case Study <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></article><article class="cs-card" data-cs="horizon"><div class="cs-img"><img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=1200&auto=format&fit=crop" alt="Horizon<br>Inc." loading="lazy"></div><div class="cs-spot" data-spot></div><span class="cs-num">02&thinsp;/&thinsp;07</span><div class="cs-info"><span class="cs-cat">Web Platform &middot; 2024</span><h3 class="cs-name">Horizon<br>Inc.</h3><p class="cs-desc">Full redesign of a fintech platform serving 50,000+ users. Conversions up 240%.</p><span class="cs-link">View Case Study <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></article><article class="cs-card" data-cs="nexus"><div class="cs-img"><img src="https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=1200&auto=format&fit=crop" alt="Nexus<br>App" loading="lazy"></div><div class="cs-spot" data-spot></div><span class="cs-num">03&thinsp;/&thinsp;07</span><div class="cs-info"><span class="cs-cat">Product Design &middot; 2023</span><h3 class="cs-name">Nexus<br>App</h3><p class="cs-desc">Mobile-first design for a healthcare startup. Onboarding from 12 min to under 90 sec.</p><span class="cs-link">View Case Study <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></article><article class="cs-card" data-cs="prism"><div class="cs-img"><img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1200&auto=format&fit=crop" alt="Prism<br>Analytics" loading="lazy"></div><div class="cs-spot" data-spot></div><span class="cs-num">04&thinsp;/&thinsp;07</span><div class="cs-info"><span class="cs-cat">Dashboard UI &middot; 2023</span><h3 class="cs-name">Prism<br>Analytics</h3><p class="cs-desc">Data viz dashboard shipped to 12,000 enterprise users.</p><span class="cs-link">View Case Study <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></article><article class="cs-card" data-cs="bloom"><div class="cs-img"><img src="https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=1200&auto=format&fit=crop" alt="Bloom<br>Wellness" loading="lazy"></div><div class="cs-spot" data-spot></div><span class="cs-num">05&thinsp;/&thinsp;07</span><div class="cs-info"><span class="cs-cat">Brand + Web &middot; 2023</span><h3 class="cs-name">Bloom<br>Wellness</h3><p class="cs-desc">D2C wellness brand redesign. Revenue grew 3&times; in 6 months post-launch.</p><span class="cs-link">View Case Study <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></article><article class="cs-card" data-cs="zenith"><div class="cs-img"><img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=1200&auto=format&fit=crop" alt="Zenith<br>Capital" loading="lazy"></div><div class="cs-spot" data-spot></div><span class="cs-num">06&thinsp;/&thinsp;07</span><div class="cs-info"><span class="cs-cat">UX Design &middot; 2022</span><h3 class="cs-name">Zenith<br>Capital</h3><p class="cs-desc">Wealth management platform UX overhaul. Task completion improved by 65%.</p><span class="cs-link">View Case Study <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></article><article class="cs-card" data-cs="nova"><div class="cs-img"><img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop" alt="Nova<br>SaaS" loading="lazy"></div><div class="cs-spot" data-spot></div><span class="cs-num">07&thinsp;/&thinsp;07</span><div class="cs-info"><span class="cs-cat">SaaS Design &middot; 2022</span><h3 class="cs-name">Nova<br>SaaS</h3><p class="cs-desc">End-to-end B2B SaaS product design. Churn reduced by 40% post-launch.</p><span class="cs-link">View Case Study <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></article></div></div></div>
+  <div class="work-ctrl">
+    <div class="work-count"><strong id="wCur">1</strong> <span style="opacity:.4">/ 7</span></div>
+    <div class="ctrl-r"><div class="w-dots" id="wDots"></div><div class="w-arrows"><button class="w-arr" id="wPrev" aria-label="Previous"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M19 12H5M12 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="w-arr" id="wNext" aria-label="Next"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div>
+  </div>
+  <div class="work-more"><a href="work.html">Load More Work <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 5v14M5 12l7 7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+</section>
+
+<section id="process">
+  <div class="proc-hd">
+    <div><div class="sec-tag rev dk" style="color:rgba(244,241,236,.35)">How we work</div><h2 class="proc-title rev d1">Our <em>Process</em></h2></div>
+    <p class="proc-note rev d2">Four deliberate steps. No guesswork &mdash; just a clear path from idea to impact.</p>
+  </div>
+  <div class="proc-steps">
+    <div class="proc-step rev"><div class="proc-left"><div class="proc-n">01</div><div class="proc-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div></div><div class="proc-body"><h3 class="proc-step-title">Discovery</h3><p class="proc-step-desc">Deep dive into your business, audience, and competitive landscape. We don&rsquo;t design until we understand the full picture.</p></div><div class="proc-chips"><span class="proc-chip">Stakeholder Interviews</span><span class="proc-chip">Competitor Audit</span><span class="proc-chip">User Research</span><span class="proc-chip">Brand Audit</span></div></div>
+    <div class="proc-step rev d1"><div class="proc-left"><div class="proc-n">02</div><div class="proc-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div></div><div class="proc-body"><h3 class="proc-step-title">Strategy</h3><p class="proc-step-desc">Define the creative direction, tone, and measurable goals. Every design decision is rooted in intent.</p></div><div class="proc-chips"><span class="proc-chip">Creative Brief</span><span class="proc-chip">Moodboarding</span><span class="proc-chip">Positioning</span><span class="proc-chip">KPI Setting</span></div></div>
+    <div class="proc-step rev d2"><div class="proc-left"><div class="proc-n">03</div><div class="proc-icon"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div></div><div class="proc-body"><h3 class="proc-step-title">Design &amp; Build</h3><p class="proc-step-desc">Iterative design sprints with your team. We move fast, refine obsessively, and ship work that genuinely surprises you.</p></div><div class="proc-chips"><span class="proc-chip">Wireframes</span><span class="proc-chip">Prototypes</span><span class="proc-chip">Visual Design</span><span class="proc-chip">Dev Handoff</span></div></div>
+    <div class="proc-step rev d3"><div class="proc-left"><div class="proc-n">04</div><div class="proc-icon"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div><div class="proc-body"><h3 class="proc-step-title">Launch &amp; Grow</h3><p class="proc-step-desc">Delivery, handoff, and ongoing support. 80% of clients continue with us post-launch.</p></div><div class="proc-chips"><span class="proc-chip">QA &amp; Testing</span><span class="proc-chip">Launch Support</span><span class="proc-chip">Analytics</span><span class="proc-chip">Retainers</span></div></div>
+  </div>
+</section>
+
+<section id="why">
+  <div class="why-inner dk">
+    <div><div class="why-stick">
+      <div class="sec-tag rev" style="color:rgba(244,241,236,.35)">Why Dcasel</div>
+      <h2 class="why-title rev d1">The Studio<br>Difference</h2>
+      <p class="why-sub rev d2">We don&rsquo;t take on every project. We take on the right ones &mdash; and then we go all in.</p>
+      <div class="why-stats rev d3">
+        <div class="why-stat"><span class="why-stat-n" data-count="300">0</span><span class="why-stat-n" style="color:var(--ember)">+</span><span class="why-stat-l">Projects</span></div>
+        <div class="why-stat"><span class="why-stat-n" data-count="98">0</span><span class="why-stat-n" style="color:var(--ember)">%</span><span class="why-stat-l">Satisfaction</span></div>
+      </div>
+    </div></div>
+    <div class="why-list">
+      <div class="why-row rev"><div class="why-rh"><h3 class="why-rt">Strategic First</h3><span class="why-rn">01</span></div><p class="why-rb">Every pixel earns its place. Design decisions trace directly to your business objectives.</p></div>
+      <div class="why-row rev d1"><div class="why-rh"><h3 class="why-rt">Obsessive Craft</h3><span class="why-rn">02</span></div><p class="why-rb">We sweat the micro-interactions, typographic details, and hover states. The difference between good and remarkable lives in the details.</p></div>
+      <div class="why-row rev d2"><div class="why-rh"><h3 class="why-rt">Long-Term Partners</h3><span class="why-rn">03</span></div><p class="why-rb">80% of our revenue comes from returning clients. We build relationships, not just deliverables.</p></div>
+      <div class="why-row rev d3"><div class="why-rh"><h3 class="why-rt">Speed Without Rush</h3><span class="why-rn">04</span></div><p class="why-rb">Clear processes mean we move fast &mdash; without cutting corners. Most projects launch 20% ahead of schedule.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="reviews">
+  <div class="rev-hd">
+    <div><div class="sec-tag rev">Client Reviews</div><h2 class="rev-title rev d1">What clients <em>say.</em></h2></div>
+    <div class="rev-stars-block rev d2"><div class="rev-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div><div class="rev-count">6 reviews &mdash; all 5 stars</div></div>
+  </div>
+  <div class="rev-vp"><div class="rev-track" id="revTrack">
+    <div class="rev-card"><div class="rev-star">&#9733;&#9733;&#9733;&#9733;&#9733;</div><p class="rev-text">&ldquo;Working with Dcasel was unlike any agency experience we&rsquo;ve had. They think like strategists, design like artists, and communicate like great partners.&rdquo;</p><div class="rev-author"><div class="rev-av">P</div><div><div class="rev-name">Priya Sharma</div><div class="rev-role">Founder, Bloom Wellness</div></div></div></div>
+    <div class="rev-card"><div class="rev-star">&#9733;&#9733;&#9733;&#9733;&#9733;</div><p class="rev-text">&ldquo;The website they built is a masterpiece. Conversion rates went up 3&times; in the first month. Every detail was considered &mdash; typography, spacing, micro-interactions.&rdquo;</p><div class="rev-author"><div class="rev-av">R</div><div><div class="rev-name">Rahul Nair</div><div class="rev-role">CMO, Nexus Fintech</div></div></div></div>
+    <div class="rev-card"><div class="rev-star">&#9733;&#9733;&#9733;&#9733;&#9733;</div><p class="rev-text">&ldquo;Mohammed and his team have a rare ability to listen deeply and translate ideas into visuals that feel exactly right. Three years and counting.&rdquo;</p><div class="rev-author"><div class="rev-av">S</div><div><div class="rev-name">Sneha Kulkarni</div><div class="rev-role">Director, Studio K</div></div></div></div>
+    <div class="rev-card"><div class="rev-star">&#9733;&#9733;&#9733;&#9733;&#9733;</div><p class="rev-text">&ldquo;Tight deadline, ambitious vision. Dcasel delivered beyond expectations &mdash; on time, on budget, with a level of craft that made us look world-class.&rdquo;</p><div class="rev-author"><div class="rev-av">V</div><div><div class="rev-name">Vikram Patel</div><div class="rev-role">Product Lead, Prism</div></div></div></div>
+    <div class="rev-card"><div class="rev-star">&#9733;&#9733;&#9733;&#9733;&#9733;</div><p class="rev-text">&ldquo;Our rebrand completely changed how investors and clients perceive us. The new identity opened doors we didn&rsquo;t think possible.&rdquo;</p><div class="rev-author"><div class="rev-av">A</div><div><div class="rev-name">Arjun Mehta</div><div class="rev-role">CEO, Zenith Capital</div></div></div></div>
+    <div class="rev-card"><div class="rev-star">&#9733;&#9733;&#9733;&#9733;&#9733;</div><p class="rev-text">&ldquo;The attention to detail is unmatched. Our dashboard redesign reduced support tickets by 55%. Users love it. We couldn&rsquo;t be happier.&rdquo;</p><div class="rev-author"><div class="rev-av">L</div><div><div class="rev-name">Linda Patel</div><div class="rev-role">CMO, Nexus Health</div></div></div></div>
+  </div></div>
+  <div class="rev-ctrl">
+    <div class="r-dots" id="rDots"></div>
+    <div class="r-arrows">
+      <button class="r-arr" id="rPrev" aria-label="Previous review"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M19 12H5M12 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="r-arr" id="rNext" aria-label="Next review"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+  <!-- Inline Write-Review CTA -->
+  <div class="rev-write-cta rev">
+    <p class="rev-write-txt">Worked with us? We&rsquo;d love to hear about your experience.</p>
+    <button class="btn-p" id="rfmTrigger" aria-expanded="false">Write a Review <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 5v14M5 12l7 7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+  <!-- Review Form Fold -->
+  <div class="rfm-fold" id="rfmFold">
+    <div class="rfm-fold-inner">
+      <div class="rfm-success" id="rfmSuccess"><h4>Thank you for the kind words!</h4><p>Your review has been received. We&rsquo;ll publish it shortly after a quick review.</p></div>
+      <div id="rfmFormWrap">
+        <div class="rfm-form-grid">
+          <div class="rfm-field"><label class="rfm-label" for="rfmName">Your Name</label><input class="rfm-input" type="text" id="rfmName" placeholder="Mohammed Younus" autocomplete="name"></div>
+          <div class="rfm-field"><label class="rfm-label" for="rfmRole">Your Role &amp; Company</label><input class="rfm-input" type="text" id="rfmRole" placeholder="Founder, Startup Inc."></div>
+          <div class="rfm-field"><label class="rfm-label" for="rfmEmail">Email Address</label><input class="rfm-input" type="email" id="rfmEmail" placeholder="hello@company.com" autocomplete="email"></div>
+          <div class="rfm-field"><label class="rfm-label" for="rfmService">Service Used</label><select class="rfm-select" id="rfmService"><option value="">Select a service</option><option>Brand Identity</option><option>Web Design</option><option>Product Design</option><option>Motion Design</option><option>Creative Direction</option><option>Multiple Services</option></select></div>
+          <div class="rfm-field full"><label class="rfm-label">Your Rating</label><div class="rfm-stars-field" id="rfmStars" data-rating="0"><button class="rfm-star-btn" data-val="1" type="button">&#9733;</button><button class="rfm-star-btn" data-val="2" type="button">&#9733;</button><button class="rfm-star-btn" data-val="3" type="button">&#9733;</button><button class="rfm-star-btn" data-val="4" type="button">&#9733;</button><button class="rfm-star-btn" data-val="5" type="button">&#9733;</button></div></div>
+          <div class="rfm-field full"><label class="rfm-label" for="rfmReview">Your Review</label><textarea class="rfm-textarea" id="rfmReview" placeholder="Tell us about your experience working with Dcasel..." rows="5"></textarea></div>
+          <div class="rfm-submit-row"><p class="rfm-privacy">By submitting, you agree to your review being published on this site. We never share your email publicly.</p><button class="btn-p" id="rfmSubmit" type="button">Submit Review <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="about">
+  <div class="about-g">
+    <div>
+      <div class="sec-tag rev" style="color:rgba(244,241,236,.35)">The Studio</div>
+      <h2 class="about-title rev d1">A Boutique<br>Studio Built<br>Different.</h2>
+      <div class="about-body rev d2">
+        <p>Dcasel Creative is built on one conviction: exceptional design is the single most powerful investment a growing business can make. Not decoration &mdash; design as competitive advantage.</p>
+        <div class="about-q"><p>&ldquo;The best design is invisible &mdash; it works so well people don&rsquo;t notice it. They just feel it.&rdquo;</p><cite>&mdash; Mohammed Younus Kaladgi, Founder</cite></div>
+        <p>Founded in 2016, we&rsquo;ve spent nine years helping over 300 businesses transform how they present themselves. Every project is a fresh problem, approached with obsessive curiosity.</p>
+      </div>
+    </div>
+    <div class="rev d2">
+      <div class="about-stats">
+        <div class="about-sb"><span class="about-sn">300+</span><span class="about-sl">Projects</span></div>
+        <div class="about-sb"><span class="about-sn">9yr</span><span class="about-sl">Experience</span></div>
+        <div class="about-sb"><span class="about-sn">98%</span><span class="about-sl">Satisfaction</span></div>
+        <div class="about-sb"><span class="about-sn">12+</span><span class="about-sl">Industries</span></div>
+      </div>
+      <div class="about-founder rev d3">
+        <div class="about-fav">M</div>
+        <div><div class="about-fn">Mohammed Younus Kaladgi</div><div class="about-fr">Founder &amp; Creative Director</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cta">
+  <div class="cta-bg" aria-hidden="true">Dcasel</div>
+  <div class="cta-inner">
+    <div class="sec-tag rev" style="justify-content:center">Have an idea?</div>
+    <h2 class="cta-title rev d1">Let&rsquo;s build something<br><em>remarkable.</em></h2>
+    <p class="cta-sub rev d2">Tell us about your project. First consultation is always free &mdash; because great work starts with a great conversation.</p>
+    <div class="cta-btns rev d3">
+      <a href="mailto:hello@dcasel.com" class="btn-p">Start a project <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <a href="#work" class="btn-o">See our work first</a>
+    </div>
+  </div>
+  <div class="cta-badge" aria-hidden="true">
+    <svg viewBox="0 0 104 104" width="104" height="104"><defs><path id="cbp" d="M52,11 a41,41 0 1,1 -0.001,0"/></defs><text fill="rgba(14,13,11,.22)" font-family="Syne,sans-serif" font-size="7.5" letter-spacing="4" font-weight="700"><textPath href="#cbp">AVAILABLE &middot; 2025 &middot; BENGALURU &middot;</textPath></text></svg>
+    <div class="cta-bc"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 5v14M5 12l7 7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  </div>
+</section>
+
+<footer>
+  <div class="ft-g">
+    <div>
+      <a href="index.html" class="ft-logo">DC<em>.</em>ASEL</a>
+      <p class="ft-desc">A boutique design studio crafting remarkable brand identities and digital experiences since 2016.</p>
+      <div class="ft-socs"><a href="#" class="ft-soc">Li</a><a href="#" class="ft-soc">Ig</a><a href="#" class="ft-soc">Dr</a><a href="#" class="ft-soc">B&eacute;</a></div>
+    </div>
+    <div class="ft-col"><h4>Services</h4><ul>
+      <li><a href="brand-identity.html">Brand Identity</a></li>
+      <li><a href="web-design.html">Web Design</a></li>
+      <li><a href="product-design.html">Product Design</a></li>
+      <li><a href="motion-design.html">Motion Design</a></li>
+      <li><a href="creative-direction.html">Creative Direction</a></li>
+    </ul></div>
+    <div class="ft-col"><h4>Studio</h4><ul>
+      <li><a href="about.html">About</a></li>
+      <li><a href="process.html">Process</a></li>
+      <li><a href="why-dcasel.html">Why Dcasel</a></li>
+      <li><a href="#work">Case Studies</a></li>
+    </ul></div>
+    <div class="ft-col"><h4>Contact</h4><ul>
+      <li><a href="mailto:hello@dcasel.com">hello@dcasel.com</a></li>
+      <li><a href="#">Bengaluru, India</a></li>
+      <li><a href="#cta">Start a Project</a></li>
+    </ul></div>
+  </div>
+  <div class="ft-bot"><span class="ft-copy">&copy; 2025 Dcasel Creative Pvt. Ltd.</span><span class="ft-made">Crafted with care in <em>Bengaluru</em></span></div>
+</footer>
+
+<!-- CASE STUDY OVERLAY -->
+<div id="csOverlay" role="dialog" aria-modal="true" aria-label="Case Study">
+  <div class="cso-bar">
+    <button class="cso-back" id="csoBack"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M19 12H5M12 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Back to Work</button>
+    <span class="cso-logo">DC<em>.</em>ASEL</span>
+    <a href="#cta" class="cso-start" id="csoStartBtn">Start a Project</a>
+  </div>
+  <div id="csoContent"></div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="galLightbox" role="dialog" aria-modal="true">
+  <button class="gal-lb-close" id="galClose" aria-label="Close">&#x2715;</button>
+  <button class="gal-lb-prev" id="galPrev" aria-label="Previous"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M19 12H5M12 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <img id="galImg" src="" alt="">
+  <button class="gal-lb-next" id="galNext" aria-label="Next"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+</div>
+<script>
+(function(){
+'use strict';
+const $=(s,el=document)=>el.querySelector(s);
+const $$=(s,el=document)=>[...el.querySelectorAll(s)];
+const isPtr=window.matchMedia('(pointer:fine)').matches;
+
+if(isPtr){
+  const wrap   = document.getElementById('cur3');
+  const orb    = document.getElementById('curOrb');
+  const ring   = document.getElementById('curRing');
+  const atmo   = document.getElementById('curAtmo');
+  const cv     = document.getElementById('curCanvas');
+  const ctx    = cv.getContext('2d');
+
+  function resizeCv(){ cv.width=innerWidth; cv.height=innerHeight; }
+  resizeCv();
+  window.addEventListener('resize',resizeCv,{passive:true});
+
+  /* ─────────────────────────────────────────────
+     Helpers
+  ───────────────────────────────────────────── */
+  const PI2 = Math.PI*2;
+  const lerp = (a,b,t) => a+(b-a)*t;
+
+  /* Elliptical orbit position
+     cx,cy = centre   rx = semi-major   tilt = inclination (0=face-on, ~.45=angled)
+     angle = current angle in radians */
+  function orbitPos(cx,cy,rx,tilt,angle){
+    const ry = rx * (0.28 + tilt * 0.35);   // perspective flatten
+    return {
+      x: cx + Math.cos(angle) * rx,
+      y: cy + Math.sin(angle) * ry,
+      // depth scalar  0=back  1=front  → drives size/opacity
+      z: (Math.sin(angle) + 1) * 0.5
+    };
+  }
+
+  /* Draw a small rocky ellipse (asteroid/moon surface roughness) */
+  function drawRock(ctx, x, y, rx, ry, rot, col, alpha){
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x,y);
+    ctx.rotate(rot);
+    ctx.beginPath();
+    // polygon approximation of jagged rock
+    const pts = 7;
+    for(let i=0;i<pts;i++){
+      const a = (i/pts)*PI2;
+      const jitter = 0.72 + Math.random()*0;  // static shape baked at creation
+      const px = Math.cos(a)*rx*jitter;
+      const py = Math.sin(a)*ry*jitter;
+      i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = col;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /* ─────────────────────────────────────────────
+     Body classes
+  ───────────────────────────────────────────── */
+
+  class Moon {
+    constructor(orbitR, speed, size, color, tilt, phaseOffset){
+      this.orbitR  = orbitR;
+      this.speed   = speed;
+      this.size    = size;       // radius at equator
+      this.color   = color;
+      this.tilt    = tilt;       // 0–1, perspective angle
+      this.angle   = phaseOffset;
+      this.trailPts= [];
+    }
+    update(cx,cy){
+      this.angle += this.speed;
+      const p = orbitPos(cx,cy,this.orbitR,this.tilt,this.angle);
+      this.x=p.x; this.y=p.y; this.z=p.z;
+      // trail
+      this.trailPts.push({x:p.x,y:p.y,a:.38*p.z});
+      if(this.trailPts.length>28) this.trailPts.shift();
+    }
+    draw(ctx){
+      // draw trail first (behind)
+      const tr=this.trailPts;
+      for(let i=1;i<tr.length;i++){
+        ctx.save();
+        ctx.globalAlpha = tr[i].a*(i/tr.length)*0.45;
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth   = this.size*0.45*(i/tr.length);
+        ctx.lineCap='round';
+        ctx.beginPath();
+        ctx.moveTo(tr[i-1].x,tr[i-1].y);
+        ctx.lineTo(tr[i].x,  tr[i].y);
+        ctx.stroke();
+        ctx.restore();
+      }
+      // sphere
+      const sz  = this.size*(0.65+this.z*0.35);
+      const grd = ctx.createRadialGradient(
+        this.x-sz*.3, this.y-sz*.3, sz*.05,
+        this.x,       this.y,       sz
+      );
+      grd.addColorStop(0,'rgba(255,255,255,.55)');
+      grd.addColorStop(0.35, this.color);
+      grd.addColorStop(1,   'rgba(0,0,0,.7)');
+      ctx.save();
+      ctx.globalAlpha = 0.72+this.z*0.28;
+      ctx.beginPath();
+      ctx.arc(this.x,this.y,sz,0,PI2);
+      ctx.fillStyle=grd;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  class Asteroid {
+    /* constructor params baked on creation so shape is static */
+    constructor(orbitR, speed, tilt, phaseOffset, col){
+      this.orbitR = orbitR;
+      this.speed  = speed * (Math.random()>.5?1:-1);
+      this.tilt   = tilt;
+      this.angle  = phaseOffset;
+      this.col    = col;
+      // bake a random jagged polygon (7 pts, static)
+      this.pts    = Array.from({length:7},(_,i)=>{
+        const a = (i/7)*PI2;
+        const r = 0.62+Math.random()*0.38;
+        return [Math.cos(a)*r, Math.sin(a)*r];
+      });
+      this.rx = 1.0 + Math.random()*1.2;  // rock x-radius
+      this.ry = this.rx*(0.55+Math.random()*.3);
+      this.rot= Math.random()*PI2;
+    }
+    update(cx,cy){
+      this.angle += this.speed;
+      const p = orbitPos(cx,cy,this.orbitR,this.tilt,this.angle);
+      this.x=p.x; this.y=p.y; this.z=p.z;
+    }
+    draw(ctx){
+      const scale = 0.55+this.z*0.45;
+      ctx.save();
+      ctx.globalAlpha = (0.38+this.z*0.42);
+      ctx.translate(this.x,this.y);
+      ctx.rotate(this.rot + this.angle*0.3);
+      ctx.beginPath();
+      const rx=this.rx*scale, ry=this.ry*scale;
+      this.pts.forEach(([px,py],i)=>{
+        const x=px*rx, y=py*ry;
+        i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      });
+      ctx.closePath();
+      ctx.fillStyle=this.col;
+      // tiny highlight
+      const g=ctx.createRadialGradient(-rx*.3,-ry*.3,0,0,0,rx);
+      g.addColorStop(0,'rgba(255,255,255,.35)');
+      g.addColorStop(1,this.col);
+      ctx.fillStyle=g;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  class ShootingStar {
+    constructor(cx,cy,range,col){
+      this.reset(cx,cy,range,col);
+      this.alpha=0; // start invisible so first frame doesn't flash
+    }
+    reset(cx,cy,range,col){
+      const angle = Math.random()*PI2;
+      const dist  = range*1.4 + Math.random()*range*.8;
+      this.x  = cx+Math.cos(angle)*dist;
+      this.y  = cy+Math.sin(angle)*dist;
+      // direction — sweeps across, vaguely tangential
+      const dir = angle + Math.PI*0.5 + (Math.random()-.5)*0.9;
+      const spd = 2.8+Math.random()*3.2;
+      this.vx = Math.cos(dir)*spd;
+      this.vy = Math.sin(dir)*spd;
+      this.len= 18+Math.random()*28;
+      this.col= col;
+      this.alpha=0.9+Math.random()*.1;
+      this.decay=0.025+Math.random()*0.035;
+      this.cx=cx; this.cy=cy; this.range=range;
+    }
+    update(cx,cy,range,col){
+      this.cx=cx; this.cy=cy;
+      this.x+=this.vx; this.y+=this.vy;
+      this.alpha-=this.decay;
+      if(this.alpha<=0) this.reset(cx,cy,range,col);
+    }
+    draw(ctx){
+      ctx.save();
+      ctx.globalAlpha=Math.max(0,this.alpha);
+      const g=ctx.createLinearGradient(
+        this.x,this.y,
+        this.x-this.vx/Math.hypot(this.vx,this.vy)*this.len,
+        this.y-this.vy/Math.hypot(this.vx,this.vy)*this.len
+      );
+      g.addColorStop(0,this.col);
+      g.addColorStop(1,'transparent');
+      ctx.strokeStyle=g;
+      ctx.lineWidth=1.1;
+      ctx.lineCap='round';
+      ctx.beginPath();
+      ctx.moveTo(this.x,this.y);
+      ctx.lineTo(
+        this.x-this.vx/Math.hypot(this.vx,this.vy)*this.len,
+        this.y-this.vy/Math.hypot(this.vx,this.vy)*this.len
+      );
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     Planet + Sun data
+     satellites: array of { type, ...params }
+  ───────────────────────────────────────────── */
+  const SUN_DEF = {
+    size:20,
+    bg:`radial-gradient(circle at 34% 26%,rgba(255,255,255,.95) 0%,rgba(255,225,100,.9) 12%,#f05818 40%,#c03000 66%,#7a1600 100%)`,
+    shadow:`0 0 0 1.5px rgba(212,76,39,.4),0 0 10px 3px rgba(212,76,39,.5),0 0 22px 6px rgba(212,76,39,.18)`,
+    atmoColor:'rgba(255,100,20,.28)',
+    isSun:true,
+    satellites:[
+      // corona shooting streaks
+      {type:'star', count:3, range:44, col:'rgba(255,180,60,.75)'},
+    ]
+  };
+
+  const PLANETS = [
+    { name:'Mercury',
+      size:16,
+      bg:`radial-gradient(ellipse 55% 40% at 30% 27%,rgba(255,255,255,.11) 0%,transparent 70%),
+          radial-gradient(circle at 35% 29%,#d8d2c8 0%,#8a8078 48%,#46403a 100%)`,
+      shadow:`0 0 0 1.5px rgba(140,132,122,.5),0 0 10px 3px rgba(120,112,102,.28)`,
+      atmoColor:'rgba(180,170,158,.18)',
+      satellites:[
+        // No moons — asteroid cluster from sun proximity
+        {type:'asteroids', count:9, orbitR:26, spread:5, speed:.028, tilt:.42, col:'#9a9088'},
+      ]
+    },
+    { name:'Venus',
+      size:21,
+      bg:`repeating-linear-gradient(173deg,rgba(255,218,82,.18) 0px,rgba(255,218,82,.0) 3px,rgba(195,132,12,.14) 4px,rgba(195,132,12,.0) 8px),
+          radial-gradient(circle at 36% 27%,#fff8c0 0%,#e2ac22 40%,#906000 100%)`,
+      shadow:`0 0 0 1.5px rgba(210,160,22,.5),0 0 12px 4px rgba(210,160,22,.35)`,
+      atmoColor:'rgba(240,200,40,.3)',
+      satellites:[
+        // Venus is moonless — dust ring + shooting streaks
+        {type:'asteroids', count:12, orbitR:30, spread:4, speed:.022, tilt:.38, col:'#c8a020'},
+        {type:'star', count:2, range:48, col:'rgba(255,230,100,.7)'},
+      ]
+    },
+    { name:'Earth',
+      size:21,
+      bg:`radial-gradient(ellipse 42% 52% at 63% 44%,rgba(32,152,52,.62) 0%,transparent 100%),
+          radial-gradient(ellipse 26% 22% at 24% 64%,rgba(32,152,52,.46) 0%,transparent 100%),
+          radial-gradient(circle at 35% 26%,#c0ecff 0%,#1880d8 38%,#0a3a7c 100%)`,
+      shadow:`0 0 0 1.5px rgba(28,108,210,.55),0 0 12px 4px rgba(28,108,210,.38)`,
+      atmoColor:'rgba(80,160,255,.25)',
+      satellites:[
+        // The Moon
+        {type:'moon', orbitR:30, speed:.034, size:4.5, color:'#d8d4cc', tilt:.38, phase:0},
+        // ISS-like tiny dot
+        {type:'moon', orbitR:24, speed:.072, size:1.8, color:'#e0e8f0', tilt:.55, phase:2.1},
+      ]
+    },
+    { name:'Mars',
+      size:19,
+      bg:`radial-gradient(ellipse 36% 16% at 50% 6%,rgba(255,255,255,.65) 0%,transparent 100%),
+          radial-gradient(circle at 36% 27%,#faa882 0%,#d44c27 40%,#7c2210 100%)`,
+      shadow:`0 0 0 1.5px rgba(212,76,39,.6),0 0 12px 4px rgba(212,76,39,.45)`,
+      atmoColor:'rgba(210,80,30,.28)',
+      satellites:[
+        // Phobos
+        {type:'moon', orbitR:26, speed:.058, size:3.2, color:'#b8a898', tilt:.3, phase:0},
+        // Deimos
+        {type:'moon', orbitR:34, speed:.031, size:2.2, color:'#a89888', tilt:.48, phase:1.6},
+        // Dust
+        {type:'asteroids', count:7, orbitR:42, spread:4, speed:.018, tilt:.44, col:'#c07050'},
+      ]
+    },
+    { name:'Jupiter',
+      size:26,
+      bg:`repeating-linear-gradient(178deg,rgba(212,115,52,.26) 0px,rgba(212,115,52,.0) 2px,rgba(248,208,148,.22) 3px,rgba(248,208,148,.0) 5px,rgba(188,88,36,.22) 6px,rgba(188,88,36,.0) 8px,rgba(248,208,148,.18) 9px,rgba(248,208,148,.0) 11px),
+          radial-gradient(circle at 36% 27%,#fce4b0 0%,#d08040 38%,#804010 100%)`,
+      grs:true,
+      shadow:`0 0 0 1.5px rgba(195,115,42,.5),0 0 14px 5px rgba(195,115,42,.32)`,
+      atmoColor:'rgba(200,130,50,.22)',
+      satellites:[
+        // Io
+        {type:'moon', orbitR:34, speed:.052, size:4.8, color:'#e8c840', tilt:.28, phase:0},
+        // Europa
+        {type:'moon', orbitR:43, speed:.038, size:4.0, color:'#d0c8c0', tilt:.35, phase:2.4},
+        // Ganymede
+        {type:'moon', orbitR:54, speed:.026, size:5.2, color:'#a8a098', tilt:.32, phase:4.8},
+        // Asteroid ring
+        {type:'asteroids', count:14, orbitR:64, spread:5, speed:.014, tilt:.38, col:'#c09060'},
+        // Shooting streaks
+        {type:'star', count:3, range:72, col:'rgba(255,200,120,.65)'},
+      ]
+    },
+    { name:'Saturn',
+      size:22,
+      bg:`repeating-linear-gradient(175deg,rgba(255,208,88,.22) 0px,rgba(255,208,88,.0) 2px,rgba(178,112,14,.2) 3px,rgba(178,112,14,.0) 6px,rgba(255,208,88,.16) 7px,rgba(255,208,88,.0) 10px),
+          radial-gradient(circle at 35% 28%,#feeaa0 0%,#d09818 40%,#7c5008 100%)`,
+      hasRing:true,
+      shadow:`0 0 0 1.5px rgba(205,158,22,.5),0 0 14px 5px rgba(205,158,22,.32)`,
+      atmoColor:'rgba(220,175,30,.22)',
+      satellites:[
+        // Titan
+        {type:'moon', orbitR:38, speed:.028, size:5.5, color:'#d4a840', tilt:.42, phase:0},
+        // Enceladus
+        {type:'moon', orbitR:48, speed:.022, size:3.2, color:'#e8f0f8', tilt:.38, phase:1.8},
+        // Mimas
+        {type:'moon', orbitR:30, speed:.042, size:2.8, color:'#c8c4bc', tilt:.32, phase:3.5},
+        // Dense asteroid ring (matches visual ring)
+        {type:'asteroids', count:22, orbitR:34, spread:7, speed:.016, tilt:.42, col:'#c8a840'},
+        {type:'asteroids', count:18, orbitR:44, spread:5, speed:.012, tilt:.44, col:'#b89030'},
+        // Shooting streaks
+        {type:'star', count:2, range:66, col:'rgba(255,235,140,.6)'},
+      ]
+    },
+    { name:'Neptune',
+      size:21,
+      bg:`repeating-linear-gradient(161deg,rgba(148,208,255,.16) 0px,rgba(148,208,255,.0) 4px,rgba(76,122,228,.14) 5px,rgba(76,122,228,.0) 9px),
+          radial-gradient(circle at 34% 27%,#c4e4ff 0%,#2c5ce0 38%,#0a1a8c 100%)`,
+      shadow:`0 0 0 1.5px rgba(52,96,215,.55),0 0 13px 5px rgba(52,96,215,.38)`,
+      atmoColor:'rgba(80,130,255,.28)',
+      satellites:[
+        // Triton (retrograde — negative speed)
+        {type:'moon', orbitR:32, speed:-.038, size:4.2, color:'#c8ddf0', tilt:.44, phase:0},
+        // Nereid
+        {type:'moon', orbitR:50, speed:.018, size:2.5, color:'#a0b8d0', tilt:.36, phase:2.8},
+        // Thin arc ring
+        {type:'asteroids', count:10, orbitR:28, spread:3, speed:.025, tilt:.40, col:'#607898'},
+        // Many shooting stars (distant ice field)
+        {type:'star', count:4, range:62, col:'rgba(180,220,255,.7)'},
+      ]
+    },
+  ];
+
+  /* ─────────────────────────────────────────────
+     Runtime state
+  ───────────────────────────────────────────── */
+  let activeSatellites = [];   // Moon | Asteroid[] | ShootingStar[]
+  let activeStars      = [];
+  let isHovering       = false;
+  let curPlanet        = null;
+  let lastIdx          = -1;
+  let grsEl            = null;
+
+  /* Build satellite objects from planet data */
+  function buildSatellites(def, cx, cy){
+    activeSatellites = [];
+    activeStars      = [];
+    if(!def.satellites) return;
+    def.satellites.forEach(s=>{
+      if(s.type==='moon'){
+        activeSatellites.push(new Moon(s.orbitR, s.speed, s.size, s.color, s.tilt, s.phase));
+      }
+      else if(s.type==='asteroids'){
+        // spread asteroids across a belt range
+        for(let i=0;i<s.count;i++){
+          const r   = s.orbitR + (Math.random()-.5)*s.spread*2;
+          const spd = s.speed*(0.7+Math.random()*.6)*(Math.random()>.5?1:-1);
+          const ph  = Math.random()*PI2;
+          activeSatellites.push(new Asteroid(r, spd, s.tilt+(Math.random()-.5)*.12, ph, s.col));
+        }
+      }
+      else if(s.type==='star'){
+        for(let i=0;i<s.count;i++){
+          const st = new ShootingStar(cx,cy,s.range,s.col);
+          // stagger initial alpha so they don't all die together
+          st.alpha = Math.random();
+          activeStars.push(st);
+        }
+      }
+    });
+  }
+
+  /* ─────────────────────────────────────────────
+     Render loop
+  ───────────────────────────────────────────── */
+  let mx=0,my=0, cx=0,cy=0;
+  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+
+  // Sort by z so back objects draw first (painter's algorithm)
+  function sortByZ(a,b){ return (a.z||0)-(b.z||0); }
+
+  function loop(){
+    cx += (mx-cx)*.2;
+    cy += (my-cy)*.2;
+    wrap.style.left = cx+'px';
+    wrap.style.top  = cy+'px';
+
+    ctx.clearRect(0,0,cv.width,cv.height);
+
+    if(isHovering){
+      /* update */
+      activeSatellites.forEach(s=>s.update(cx,cy));
+      activeStars.forEach(s=>s.update(cx,cy, curPlanet?.satellites?.find(x=>x.type==='star')?.range||50,
+                                              curPlanet?.satellites?.find(x=>x.type==='star')?.col||'white'));
+
+      /* sort moons+asteroids by depth */
+      const sorted = [...activeSatellites].sort(sortByZ);
+
+      /* draw back-hemisphere objects (z < 0.5) */
+      sorted.filter(s=>s.z<0.5).forEach(s=>s.draw(ctx));
+
+      /* draw planet orb glow halo at planet centre */
+      const haloR = (curPlanet?.size||20)*1.8;
+      const hg = ctx.createRadialGradient(cx,cy,0,cx,cy,haloR);
+      hg.addColorStop(0,'transparent');
+      hg.addColorStop(0.6,'transparent');
+      hg.addColorStop(1,curPlanet?.atmoColor||'rgba(100,100,200,.15)');
+      ctx.save(); ctx.globalAlpha=.55;
+      ctx.beginPath(); ctx.arc(cx,cy,haloR,0,PI2);
+      ctx.fillStyle=hg; ctx.fill();
+      ctx.restore();
+
+      /* draw front-hemisphere objects (z >= 0.5) */
+      sorted.filter(s=>s.z>=0.5).forEach(s=>s.draw(ctx));
+
+      /* shooting stars always on top */
+      activeStars.forEach(s=>s.draw(ctx));
+    }
+
+    requestAnimationFrame(loop);
+  }
+  loop();
+
+  /* ─────────────────────────────────────────────
+     Show / hide
+  ───────────────────────────────────────────── */
+  function showSun(){
+    isHovering=false;
+    activeSatellites=[]; activeStars=[];
+    wrap.classList.remove('hov','has-ring','has-atmo');
+    orb.classList.remove('is-sun');
+    ring.style.opacity='0';
+    atmo.style.opacity='0';
+    if(grsEl){grsEl.remove();grsEl=null;}
+
+    orb.style.width  = SUN_DEF.size+'px';
+    orb.style.height = SUN_DEF.size+'px';
+    orb.style.background = SUN_DEF.bg;
+    orb.style.boxShadow  = SUN_DEF.shadow;
+    const ao = SUN_DEF.size+10;
+    atmo.style.width    = ao+'px';
+    atmo.style.height   = ao+'px';
+    atmo.style.background=`radial-gradient(circle,${SUN_DEF.atmoColor} 0%,transparent 70%)`;
+    requestAnimationFrame(()=>{
+      wrap.classList.add('is-sun','has-atmo');
+      orb.classList.add('is-sun');
+      atmo.style.opacity='1';
+    });
+  }
+
+  function showPlanet(p){
+    wrap.classList.remove('is-sun','has-ring','has-atmo');
+    orb.classList.remove('is-sun');
+    if(grsEl){grsEl.remove();grsEl=null;}
+
+    orb.style.width  = p.size+'px';
+    orb.style.height = p.size+'px';
+    orb.style.background = p.bg;
+    orb.style.boxShadow  = p.shadow;
+
+    const ao = p.size+14;
+    atmo.style.width    = ao+'px';
+    atmo.style.height   = ao+'px';
+    atmo.style.background=`radial-gradient(circle,${p.atmoColor} 0%,transparent 68%)`;
+
+    if(p.hasRing){
+      const rw=p.size*2.1, rh=p.size*.55;
+      ring.style.width  = rw+'px';
+      ring.style.height = rh+'px';
+      ring.style.background=
+        `radial-gradient(ellipse 100% 100% at 50% 50%,transparent 28%,rgba(218,173,45,.55) 36%,rgba(248,213,82,.26) 50%,rgba(218,173,45,.46) 61%,transparent 70%)`;
+      ring.style.boxShadow='0 0 5px 1px rgba(218,173,45,.22)';
+    }
+
+    if(p.grs){
+      grsEl=document.createElement('div');
+      grsEl.style.cssText='position:absolute;width:26%;height:18%;background:rgba(172,36,10,.62);border-radius:50%;top:55%;left:56%;transform:translate(-50%,-50%);filter:blur(.7px);pointer-events:none;z-index:2;';
+      orb.appendChild(grsEl);
+    }
+
+    requestAnimationFrame(()=>{
+      wrap.classList.add('hov','has-atmo');
+      if(p.hasRing) wrap.classList.add('has-ring');
+      atmo.style.opacity='1';
+    });
+
+    /* spawn satellites AFTER applying planet so cx/cy are stable */
+    curPlanet = p;
+    buildSatellites(p, cx, cy);
+    isHovering = true;
+  }
+
+  function pickPlanet(){
+    let i;
+    do{i=Math.floor(Math.random()*PLANETS.length);}while(i===lastIdx);
+    lastIdx=i; return PLANETS[i];
+  }
+
+  showSun();
+
+  $$('a,button').forEach(el=>{
+    el.addEventListener('mouseenter',()=>showPlanet(pickPlanet()));
+    el.addEventListener('mouseleave',()=>showSun());
+  });
+}
+
+  /* ── Keep "View" label on cs-cards ── */
+  const lbl = document.getElementById('curLbl');
+  if(lbl){
+    $$('.cs-card').forEach(el=>{
+      el.addEventListener('mouseenter',()=>{lbl.classList.add('vis');lbl.textContent='View';});
+      el.addEventListener('mouseleave',()=>lbl.classList.remove('vis'));
+    });
+  }
+
+
+/* PROGRESS */
+const prog=document.getElementById('prog');
+window.addEventListener('scroll',()=>{prog.style.transform=`scaleX(${window.scrollY/(document.body.scrollHeight-window.innerHeight)||0})`;},{passive:true});
+
+/* NAV */
+const nav=document.getElementById('nav');
+const dkIds=['work','process','why','about'];
+window.addEventListener('scroll',()=>{
+  nav.classList.toggle('stuck',window.scrollY>30);
+  const dk=dkIds.some(id=>{const el=document.getElementById(id);if(!el)return false;const r=el.getBoundingClientRect();return r.top<68&&r.bottom>0;});
+  nav.classList.toggle('dnav',dk);
+},{passive:true});
+
+/* HAMBURGER */
+const hamBtn=document.getElementById('hamBtn');
+const mob=document.getElementById('mobMenu');
+const openMob=()=>{mob.classList.add('open');hamBtn.classList.add('open');hamBtn.setAttribute('aria-expanded','true');mob.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';};
+const closeMob=()=>{mob.classList.remove('open');hamBtn.classList.remove('open');hamBtn.setAttribute('aria-expanded','false');mob.setAttribute('aria-hidden','true');document.body.style.overflow='';};
+hamBtn.addEventListener('click',()=>mob.classList.contains('open')?closeMob():openMob());
+$$('.mm').forEach(a=>a.addEventListener('click',closeMob));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeMob();closeCS();}});
+
+/* HERO REVEAL */
+setTimeout(()=>{
+  $$('.clp').forEach((el,i)=>setTimeout(()=>el.classList.add('vis'),200+i*140));
+  setTimeout(()=>document.getElementById('heroFoot')?.classList.add('vis'),820);
+},60);
+
+/* SCROLL REVEAL */
+const revO=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');revO.unobserve(e.target);}});},{threshold:.07,rootMargin:'0px 0px -36px 0px'});
+$$('.rev').forEach(el=>revO.observe(el));
+
+/* WHY SECTION COUNTERS */
+const cntO=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting)return;
+    const el=e.target,tgt=parseInt(el.getAttribute('data-count'));
+    let v=0;const step=tgt/52;
+    const t=setInterval(()=>{v=Math.min(v+step,tgt);el.textContent=Math.round(v);if(v>=tgt)clearInterval(t);},18);
+    cntO.unobserve(el);
+  });
+},{threshold:.5});
+$$('[data-count]').forEach(el=>cntO.observe(el));
+
+/* NUMBERS SECTION COUNTERS */
+const numO=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting)return;
+    const el=e.target;
+    const target=parseFloat(el.getAttribute('data-target'));
+    const isDecimal=el.hasAttribute('data-decimal');
+    let v=0,frames=60,step=target/frames;
+    const t=setInterval(()=>{
+      v=Math.min(v+step,target);
+      el.textContent=isDecimal?v.toFixed(1):Math.round(v);
+      if(v>=target){el.textContent=isDecimal?target.toFixed(1):target;clearInterval(t);}
+    },18);
+    numO.unobserve(el);
+  });
+},{threshold:.5});
+$$('.nc-num').forEach(el=>numO.observe(el));
+
+/* SPOTLIGHT ON CASE CARDS */
+$$('.cs-card').forEach(card=>{
+  const spot=card.querySelector('[data-spot]');
+  if(!spot)return;
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    spot.style.setProperty('--sx',`${e.clientX-r.left}px`);
+    spot.style.setProperty('--sy',`${e.clientY-r.top}px`);
+  });
+});
+
+/* CAROUSEL FACTORY */
+function makeCarousel({trackId,dotsId,prevId,nextId,counterId,getPerView}){
+  const track=document.getElementById(trackId);
+  const dotsWrap=document.getElementById(dotsId);
+  const prevBtn=document.getElementById(prevId);
+  const nextBtn=document.getElementById(nextId);
+  const countEl=counterId?document.getElementById(counterId):null;
+  if(!track||!prevBtn||!nextBtn)return;
+  const cards=$$(':scope > *',track);
+  const total=cards.length;
+  let cur=0;
+  function maxIdx(){return Math.max(0,total-getPerView(window.innerWidth));}
+  function buildDots(){
+    if(!dotsWrap)return;
+    dotsWrap.innerHTML='';
+    for(let i=0;i<=maxIdx();i++){
+      const d=document.createElement('button');
+      d.className=(dotsId==='wDots'?'w-dot':'r-dot')+(i===cur?' on':'');
+      d.setAttribute('aria-label',`Go to slide ${i+1}`);
+      d.addEventListener('click',()=>goTo(i));
+      dotsWrap.appendChild(d);
+    }
+  }
+  function goTo(idx){
+    cur=Math.max(0,Math.min(idx,maxIdx()));
+    const cw=cards[0].getBoundingClientRect().width;
+    track.style.transform=`translateX(-${cur*(cw+14)}px)`;
+    if(dotsWrap)dotsWrap.querySelectorAll('button').forEach((d,i)=>d.classList.toggle('on',i===cur));
+    if(countEl)countEl.textContent=cur+1;
+    prevBtn.disabled=cur===0;nextBtn.disabled=cur>=maxIdx();
+  }
+  prevBtn.addEventListener('click',()=>goTo(cur-1));
+  nextBtn.addEventListener('click',()=>goTo(cur+1));
+  let tsX=0;
+  track.addEventListener('touchstart',e=>{tsX=e.touches[0].clientX;},{passive:true});
+  track.addEventListener('touchend',e=>{const dx=tsX-e.changedTouches[0].clientX;if(Math.abs(dx)>44){dx>0?goTo(cur+1):goTo(cur-1);}},{passive:true});
+  window.addEventListener('resize',()=>{buildDots();goTo(0);});
+  buildDots();goTo(0);
+}
+makeCarousel({trackId:'workTrack',dotsId:'wDots',prevId:'wPrev',nextId:'wNext',counterId:'wCur',getPerView:w=>w>=1024?3:w>=640?2:1});
+makeCarousel({trackId:'revTrack',dotsId:'rDots',prevId:'rPrev',nextId:'rNext',counterId:null,getPerView:w=>w>=1060?3:w>=600?2:1});
+(function(){let t;const btn=document.getElementById('rNext');function reset(){clearInterval(t);t=setInterval(()=>btn&&btn.click(),5200);}reset();document.getElementById('rPrev')?.addEventListener('click',reset);btn?.addEventListener('click',reset);})();
+
+/* MAGNETIC BUTTONS */
+if(isPtr){
+  $$('.btn-p,.nav-cta,.work-more a').forEach(btn=>{
+    btn.addEventListener('mousemove',e=>{const r=btn.getBoundingClientRect();const x=(e.clientX-r.left-r.width/2)*.32;const y=(e.clientY-r.top-r.height/2)*.32;btn.style.transform=`translate(${x}px,${y}px)`;});
+    btn.addEventListener('mouseleave',()=>btn.style.transform='');
+  });
+}
+
+/* SERVICE ACCORDION */
+$$('.srv-row-head').forEach(head=>{
+  head.addEventListener('click',()=>{
+    const row=head.closest('.srv-row');
+    const panel=row.querySelector('.srv-panel');
+    const inner=panel.querySelector('.srv-panel-inner');
+    const isOpen=row.classList.contains('active');
+    $$('.srv-row.active').forEach(r=>{r.classList.remove('active');r.querySelector('.srv-panel').style.height='0';});
+    if(!isOpen){
+      row.classList.add('active');
+      panel.style.height='auto';
+      const h=inner.getBoundingClientRect().height;
+      panel.style.height='0';
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        panel.style.height=h+'px';
+        setTimeout(()=>row.scrollIntoView({behavior:'smooth',block:'nearest'}),220);
+      }));
+    }
+  });
+});
+window.addEventListener('resize',()=>{$$('.srv-row.active').forEach(row=>{const p=row.querySelector('.srv-panel');const i=p.querySelector('.srv-panel-inner');p.style.height='auto';p.style.height=i.getBoundingClientRect().height+'px';});});
+
+/* ANCHOR SERVICE LINKS */
+$$('a[href^="#srv-"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    e.preventDefault();
+    const id=a.getAttribute('href').slice(1);
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.scrollIntoView({behavior:'smooth',block:'start'});
+    setTimeout(()=>{const h=el.querySelector('.srv-row-head');if(h&&!el.classList.contains('active'))h.click();},600);
+  });
+});
+
+/* REVIEW FORM FOLD */
+let rfmOpen=false;
+const rfmTrigger=document.getElementById('rfmTrigger');
+const rfmFold=document.getElementById('rfmFold');
+const rfmFI=rfmFold.querySelector('.rfm-fold-inner');
+function svgClose(){return '<svg viewBox="0 0 24 24" stroke-width="1.5" fill="none" style="width:11px;height:11px;stroke:var(--bone)"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg>';}
+function svgDown(){return '<svg viewBox="0 0 24 24" stroke-width="1.5" fill="none" style="width:11px;height:11px;stroke:var(--bone)"><path d="M12 5v14M5 12l7 7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>';}
+rfmTrigger.addEventListener('click',()=>{
+  rfmOpen=!rfmOpen;
+  rfmTrigger.setAttribute('aria-expanded',rfmOpen);
+  if(rfmOpen){
+    rfmTrigger.innerHTML='Close '+svgClose();
+    rfmFold.style.height='auto';
+    const h=rfmFI.getBoundingClientRect().height;
+    rfmFold.style.height='0';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{rfmFold.style.height=h+'px';setTimeout(()=>rfmFold.scrollIntoView({behavior:'smooth',block:'nearest'}),400);}));
+  } else {
+    rfmTrigger.innerHTML='Write a Review '+svgDown();
+    rfmFold.style.height='0';
+  }
+});
+window.addEventListener('resize',()=>{if(rfmOpen){rfmFold.style.height='auto';rfmFold.style.height=rfmFI.getBoundingClientRect().height+'px';}});
+const rfmStars=document.getElementById('rfmStars');
+const starBtns=$$('.rfm-star-btn',rfmStars);
+starBtns.forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const val=parseInt(btn.getAttribute('data-val'));
+    rfmStars.setAttribute('data-rating',val);
+    starBtns.forEach((b,i)=>b.classList.toggle('active',i<val));
+  });
+  btn.addEventListener('mouseenter',()=>{const v=parseInt(btn.getAttribute('data-val'));starBtns.forEach((b,i)=>b.style.color=i<v?'var(--ember)':'');});
+  btn.addEventListener('mouseleave',()=>{const c=parseInt(rfmStars.getAttribute('data-rating')||0);starBtns.forEach((b,i)=>{b.style.color='';b.classList.toggle('active',i<c);});});
+});
+document.getElementById('rfmSubmit')?.addEventListener('click',()=>{
+  const nm=$('#rfmName').value.trim();
+  const rv=$('#rfmReview').value.trim();
+  if(!nm){$('#rfmName').style.borderColor='var(--ember)';setTimeout(()=>$('#rfmName').style.borderColor='',1800);return;}
+  if(!rv){$('#rfmReview').style.borderColor='var(--ember)';setTimeout(()=>$('#rfmReview').style.borderColor='',1800);return;}
+  document.getElementById('rfmFormWrap').style.display='none';
+  document.getElementById('rfmSuccess').classList.add('show');
+  rfmFold.style.height='auto';rfmFold.style.height=rfmFI.getBoundingClientRect().height+'px';
+});
+
+/* CASE STUDY DATA */
+const CS={
+  vertex:{cat:'Brand Identity \u00b7 2024',title:'Vertex Technologies',img:'https://images.unsplash.com/photo-1609921212029-bb5a28e60960?q=80&w=1600&auto=format&fit=crop',client:'Vertex Technologies',year:'2024',service:'Brand Identity',duration:'6 Weeks',lead:'A complete brand identity overhaul for a B2B SaaS company entering its Series B funding round \u2014 built to command premium positioning in a crowded enterprise market.',tags:['Brand Identity','Logo System','Brand Guidelines','Typography','Colour'],desc:'Vertex came to us with a logo from their early days that no longer reflected who they were. We rebuilt the entire brand from the ground up \u2014 starting with a 3-week discovery phase that revealed their true differentiator: technical depth with human clarity.',metrics:[{n:'3\u00d7',l:'Inbound Lead Growth'},{n:'240%',l:'Investor Deck Engagement'},{n:'6wk',l:'Project Duration'}],challenge:'The existing brand communicated a scrappy startup, not a scaling enterprise platform. The challenge was to evolve without alienating their existing user base while signalling a step-change in ambition.',approach:'We began with a brand positioning workshop. The visual language emerged from this clarity \u2014 geometric precision that signals engineering excellence, warm off-white tones that prevent the coldness typical of enterprise SaaS.',fullImg:'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?q=80&w=1600&auto=format&fit=crop',img2a:'https://images.unsplash.com/photo-1561070791-2526d30994b5?q=80&w=900&auto=format&fit=crop',img2b:'https://images.unsplash.com/photo-1558655146-9f40138edfeb?q=80&w=900&auto=format&fit=crop',quote:'\u201cThe new brand didn\u2019t just look better \u2014 it changed how everyone in the room thought about us. Investors, clients, new hires. Everything shifted.\u201d',quoteBy:'\u2014 Alex Rao, CEO, Vertex Technologies',gallery:['https://images.unsplash.com/photo-1609921212029-bb5a28e60960?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1561070791-2526d30994b5?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1558655146-9f40138edfeb?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800&auto=format&fit=crop']},
+  horizon:{cat:'Web Platform \u00b7 2024',title:'Horizon Inc.',img:'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=1600&auto=format&fit=crop',client:'Horizon Inc.',year:'2024',service:'Web Design & Development',duration:'8 Weeks',lead:'A full redesign of a fintech platform serving 50,000+ users \u2014 transforming a legacy interface into a modern, conversion-optimised experience that increased signups by 240%.',tags:['Web Design','UI/UX','React','Webflow','CMS'],desc:'Horizon\u2019s product had grown faster than its design. What began as a clean MVP had accumulated years of feature additions without design governance. We rebuilt the entire front-end experience.',metrics:[{n:'240%',l:'Conversion Rate Lift'},{n:'55%',l:'Reduced Churn'},{n:'8wk',l:'Project Duration'}],challenge:'The existing interface had 47 distinct page templates with inconsistent patterns. Users were confused by navigation that had grown organically over 4 years.',approach:'We started with a 2-week UX audit, interviewing 14 power users and 8 churned customers. We rebuilt the IA around user goals rather than product features.',fullImg:'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1600&auto=format&fit=crop',img2a:'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=900&auto=format&fit=crop',img2b:'https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=900&auto=format&fit=crop',quote:'\u201cThe redesign paid for itself in the first month. Conversion is up 240% and the support team finally stopped getting \u201chow do I find X\u201d tickets.\u201d',quoteBy:'\u2014 Marcus Chen, CTO, Horizon Inc.',gallery:['https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800&auto=format&fit=crop']},
+  nexus:{cat:'Product Design \u00b7 2023',title:'Nexus App',img:'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=1600&auto=format&fit=crop',client:'Nexus Health',year:'2023',service:'Product Design',duration:'10 Weeks',lead:'Mobile-first product redesign for a healthcare startup \u2014 reducing patient onboarding from 12 minutes to under 90 seconds without losing a single required data point.',tags:['Product Design','UX Research','Mobile','Figma','Healthcare'],desc:'Nexus was losing 68% of patients during onboarding. The existing flow was designed for regulatory compliance rather than user comprehension.',metrics:[{n:'90sec',l:'New Onboarding Time'},{n:'68%',l:'Reduced Drop-off'},{n:'10wk',l:'Project Duration'}],challenge:'Healthcare apps face a unique constraint: regulatory compliance creates mandatory data collection that can feel overwhelming to patients who are already anxious.',approach:'Progressive disclosure became our core design principle. By breaking the 40-field form into contextual micro-moments distributed across the first week of app use.',fullImg:'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=1600&auto=format&fit=crop',img2a:'https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=900&auto=format&fit=crop',img2b:'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?q=80&w=900&auto=format&fit=crop',quote:'\u201cWe\u2019d tried three other designers on this problem. Dcasel was the first team that actually understood that our users were patients, not power users.\u201d',quoteBy:'\u2014 Dr. Priya Subramaniam, Founder, Nexus Health',gallery:['https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?q=80&w=800&auto=format&fit=crop']},
+  prism:{cat:'Dashboard UI \u00b7 2023',title:'Prism Analytics',img:'https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1600&auto=format&fit=crop',client:'Prism Analytics',year:'2023',service:'Product Design',duration:'8 Weeks',lead:'Enterprise data visualisation dashboard shipped to 12,000 daily users across 140 enterprise accounts.',tags:['Dashboard','Data Viz','Product Design','Enterprise','B2B'],desc:'Prism had built sophisticated analytics infrastructure, but their dashboard interface was inaccessible to non-technical users.',metrics:[{n:'12k',l:'Daily Active Users'},{n:'3.2\u00d7',l:'Session Duration'},{n:'55%',l:'Support Ticket Drop'}],challenge:'Enterprise analytics dashboards serve two distinct audiences: the data scientist who wants raw control, and the executive who wants a clear story.',approach:'We introduced a layered information architecture: a \u201cStory View\u201d for executives and an \u201cExplore View\u201d for analysts. Users toggle seamlessly between them.',fullImg:'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1600&auto=format&fit=crop',img2a:'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=900&auto=format&fit=crop',img2b:'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=900&auto=format&fit=crop',quote:'\u201cOur enterprise clients used to request custom reports every week. Now they build their own.\u201d',quoteBy:'\u2014 Vikram Patel, Product Lead, Prism Analytics',gallery:['https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop']},
+  bloom:{cat:'Brand + Web \u00b7 2023',title:'Bloom Wellness',img:'https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=1600&auto=format&fit=crop',client:'Bloom Wellness',year:'2023',service:'Brand Identity + Web Design',duration:'12 Weeks',lead:'A complete brand and web overhaul for a D2C wellness company \u2014 transforming a generic health brand into a premium lifestyle identity that tripled revenue in 6 months.',tags:['Brand Identity','Web Design','D2C','Webflow','Creative Direction'],desc:'Bloom was competing on price in a commodity market. Their brand looked like every other green-and-white wellness brand.',metrics:[{n:'3\u00d7',l:'Revenue in 6 Months'},{n:'4.2\u00d7',l:'Avg. Order Value'},{n:'12wk',l:'Project Duration'}],challenge:'The wellness category is crowded with green gradients and stock photography. Standing out meant rejecting the entire category visual language.',approach:'We positioned Bloom at the intersection of apothecary heritage and contemporary wellness science. The visual language draws from botanical illustration and laboratory precision.',fullImg:'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=1600&auto=format&fit=crop',img2a:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=900&auto=format&fit=crop',img2b:'https://images.unsplash.com/photo-1607082349566-187342175e2f?q=80&w=900&auto=format&fit=crop',quote:'\u201cBefore the rebrand, we were apologising for our pricing. After, we were justifying it confidently.\u201d',quoteBy:'\u2014 Priya Sharma, Founder, Bloom Wellness',gallery:['https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1607082349566-187342175e2f?q=80&w=800&auto=format&fit=crop']},
+  zenith:{cat:'UX Design \u00b7 2022',title:'Zenith Capital',img:'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=1600&auto=format&fit=crop',client:'Zenith Capital',year:'2022',service:'UX Design + Brand Identity',duration:'9 Weeks',lead:'Wealth management platform UX overhaul \u2014 increasing task completion by 65% for a platform managing over \u20b92,400 crore in assets.',tags:['UX Design','Fintech','Brand Identity','HNI','Dashboard'],desc:'Zenith\u2019s platform was built by engineers for engineers. HNI clients were calling relationship managers for tasks the platform could theoretically handle.',metrics:[{n:'65%',l:'Task Completion Lift'},{n:'82%',l:'Self-Service Rate'},{n:'4.7\u2605',l:'App Store Rating'}],challenge:'Wealth management interfaces must balance contradictory demands: project confidence and stability while being genuinely contemporary and usable.',approach:'We studied how HNI clients actually described their relationship with money \u2014 the language was almost entirely personal and goal-oriented. We rebuilt the IA around life goals.',fullImg:'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=1600&auto=format&fit=crop',img2a:'https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=900&auto=format&fit=crop',img2b:'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=900&auto=format&fit=crop',quote:'\u201cOur clients used to call us to check their portfolio balance. Now they\u2019re using features we built two years ago that nobody had ever touched.\u201d',quoteBy:'\u2014 Arjun Mehta, CEO, Zenith Capital',gallery:['https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=800&auto=format&fit=crop']},
+  nova:{cat:'SaaS Design \u00b7 2022',title:'Nova SaaS',img:'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1600&auto=format&fit=crop',client:'Nova SaaS',year:'2022',service:'Product Design',duration:'12 Weeks',lead:'End-to-end B2B SaaS product design \u2014 reducing churn by 40% through a redesign that turned a complex tool into an intuitive daily workflow platform.',tags:['SaaS','Product Design','B2B','Design System','Figma'],desc:'Nova had product-market fit but a churn problem. Customers were leaving after 90 days not because the product didn\u2019t work, but because they couldn\u2019t figure out how to make it work for them.',metrics:[{n:'40%',l:'Churn Reduction'},{n:'3.1\u00d7',l:'Feature Adoption'},{n:'NPS+42',l:'Net Promoter Score'}],challenge:'B2B SaaS churn is almost always a design problem masquerading as a product problem. Nova had built powerful features presented as a library of tools rather than a guided workflow.',approach:'We introduced an opinionated onboarding flow that got customers to their first \u201caha moment\u201d within 7 minutes of signup. We then redesigned around recommended workflows.',fullImg:'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?q=80&w=1600&auto=format&fit=crop',img2a:'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=900&auto=format&fit=crop',img2b:'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=900&auto=format&fit=crop',quote:'\u201cThe churn numbers alone paid for the engagement 10 times over. But the real win was that our sales team finally had a product they were proud to demo.\u201d',quoteBy:'\u2014 Linda Patel, CMO, Nova SaaS',gallery:['https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?q=80&w=800&auto=format&fit=crop','https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=800&auto=format&fit=crop']}
+};
+
+/* BUILD CS CONTENT */
+function buildCS(d){
+  const tags=d.tags.map(t=>`<span class="cso-tag">${t}</span>`).join('');
+  const metrics=d.metrics.map(m=>`<div class="cso-metric"><div class="cso-metric-n">${m.n}</div><div class="cso-metric-l">${m.l}</div></div>`).join('');
+  const gal=d.gallery.map((s,i)=>`<div class="cso-gal-item${i===0?' wide':''}" data-gi="${i}"><img src="${s}" alt="Gallery ${i+1}" loading="lazy"><div class="gal-ov"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>`).join('');
+  return `
+<div class="cso-hero-img"><img src="${d.img}" alt="${d.title}">
+<div class="cso-hero-over">
+  <div class="cso-eyebrow">${d.cat}</div>
+  <h1 class="cso-h1">${d.title}</h1>
+  <div class="cso-meta">
+    <div class="cso-meta-item"><span class="cso-meta-label">Client</span><span class="cso-meta-val">${d.client}</span></div>
+    <div class="cso-meta-item"><span class="cso-meta-label">Year</span><span class="cso-meta-val">${d.year}</span></div>
+    <div class="cso-meta-item"><span class="cso-meta-label">Service</span><span class="cso-meta-val">${d.service}</span></div>
+    <div class="cso-meta-item"><span class="cso-meta-label">Duration</span><span class="cso-meta-val">${d.duration}</span></div>
+  </div>
+</div></div>
+<div class="cso-body">
+  <div class="cso-intro">
+    <p class="cso-lead">${d.lead}</p>
+    <div><div class="cso-tags">${tags}</div><p class="cso-desc-txt">${d.desc}</p></div>
+  </div>
+  <div class="cso-metrics">${metrics}</div>
+  <div class="cso-section">
+    <div class="cso-sec-label">The Challenge</div>
+    <h2 class="cso-sec-title">What we were up against</h2>
+    <p class="cso-sec-body">${d.challenge}</p>
+    <img class="cso-fullimg" src="${d.fullImg}" alt="Detail" loading="lazy">
+  </div>
+  <div class="cso-section">
+    <div class="cso-sec-label">Our Approach</div>
+    <h2 class="cso-sec-title">How we solved it</h2>
+    <p class="cso-sec-body">${d.approach}</p>
+    <div class="cso-2col"><img src="${d.img2a}" alt="A" loading="lazy"><img src="${d.img2b}" alt="B" loading="lazy"></div>
+  </div>
+  <div class="cso-quote"><p>${d.quote}</p><cite>${d.quoteBy}</cite></div>
+  <div class="cso-gallery-wrap">
+    <div class="cso-gallery-head"><h2 class="cso-gallery-title">Project Gallery</h2></div>
+    <div class="cso-gallery-grid">${gal}</div>
+  </div>
+  <div class="cso-end">
+    <h3>Ready to build something<br><em>remarkable?</em></h3>
+    <p>Tell us about your project. First consultation is always free.</p>
+    <div class="cso-end-btns">
+      <a href="#cta" class="btn-p" onclick="closeCS()">Start a Project <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <button class="btn-o" onclick="closeCS()">Back to Work</button>
+    </div>
+  </div>
+</div>`;
+}
+
+/* CS OVERLAY */
+const overlay=document.getElementById('csOverlay');
+const csoContent=document.getElementById('csoContent');
+let galImages=[],galIndex=0;
+
+function openCS(slug){
+  const d=CS[slug];if(!d)return;
+  galImages=d.gallery||[];
+  csoContent.innerHTML=buildCS(d);
+  overlay.classList.add('open');
+  document.body.classList.add('cs-open');
+  overlay.scrollTop=0;
+  $$('.cso-gal-item',overlay).forEach(item=>{
+    item.addEventListener('click',()=>{galIndex=parseInt(item.getAttribute('data-gi')||0);openLightbox(galIndex);});
+  });
+}
+function closeCS(){
+  overlay.classList.remove('open');
+  document.body.classList.remove('cs-open');
+  setTimeout(()=>{csoContent.innerHTML='';},600);
+}
+window.closeCS=closeCS;
+document.getElementById('csoBack')?.addEventListener('click',closeCS);
+document.getElementById('csoStartBtn')?.addEventListener('click',closeCS);
+
+function attachCS(){
+  $$('[data-cs]').forEach(el=>{
+    el.addEventListener('click',e=>{
+      e.preventDefault();
+      const slug=el.getAttribute('data-cs');
+      if(slug)openCS(slug);
+    });
+  });
+}
+attachCS();
+
+/* LIGHTBOX */
+const lb=document.getElementById('galLightbox');
+const lbImg=document.getElementById('galImg');
+function openLightbox(idx){galIndex=idx;lbImg.src=galImages[galIndex];lb.classList.add('open');}
+function closeLB(){lb.classList.remove('open');}
+document.getElementById('galClose')?.addEventListener('click',closeLB);
+document.getElementById('galPrev')?.addEventListener('click',()=>{galIndex=(galIndex-1+galImages.length)%galImages.length;lbImg.src=galImages[galIndex];});
+document.getElementById('galNext')?.addEventListener('click',()=>{galIndex=(galIndex+1)%galImages.length;lbImg.src=galImages[galIndex];});
+lb.addEventListener('click',e=>{if(e.target===lb)closeLB();});
+document.addEventListener('keydown',e=>{
+  if(lb.classList.contains('open')){
+    if(e.key==='ArrowLeft'){galIndex=(galIndex-1+galImages.length)%galImages.length;lbImg.src=galImages[galIndex];}
+    if(e.key==='ArrowRight'){galIndex=(galIndex+1)%galImages.length;lbImg.src=galImages[galIndex];}
+    if(e.key==='Escape')closeLB();
+  }
+});
+
+/* GEOMETRIC HERO ANIMATION */
+(function geo(){
+  const canvas=document.getElementById('geoCanvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  let W,H,cx,cy,t=0,mx=0,my=0;
+  function resize(){const p=canvas.parentElement;W=canvas.width=p.clientWidth;H=canvas.height=p.clientHeight;cx=W/2;cy=H/2;}
+  resize();window.addEventListener('resize',resize);
+  canvas.parentElement.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect();mx=(e.clientX-r.left-W/2)/W;my=(e.clientY-r.top-H/2)/H;});
+  const ink='rgba(14,13,11,',ember='rgba(212,76,39,',parchm='rgba(217,212,201,';
+  const phi=(1+Math.sqrt(5))/2;
+  const iv=[[0,1,phi],[0,-1,phi],[0,1,-phi],[0,-1,-phi],[1,phi,0],[-1,phi,0],[1,-phi,0],[-1,-phi,0],[phi,0,1],[phi,0,-1],[-phi,0,1],[-phi,0,-1]].map(v=>{const l=Math.sqrt(v[0]**2+v[1]**2+v[2]**2);return v.map(x=>x/l*120);});
+  const ie=[];for(let i=0;i<iv.length;i++)for(let j=i+1;j<iv.length;j++){const d=Math.sqrt(iv[i].reduce((s,v,k)=>(s+(v-iv[j][k])**2),0));if(d<155)ie.push([i,j]);}
+  const pts=Array.from({length:28},()=>({x:(Math.random()-.5)*300,y:(Math.random()-.5)*300,z:(Math.random()-.5)*200,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,vz:(Math.random()-.5)*.3,r:Math.random()*2+.5,ph:Math.random()*Math.PI*2,tp:Math.floor(Math.random()*3)}));
+  const rings=[{r:160,tl:.45,sp:.0008,ph:0,c:ink,a:.07},{r:200,tl:-.3,sp:.0005,ph:Math.PI/3,c:parchm,a:.05},{r:110,tl:.7,sp:.0013,ph:Math.PI,c:ember,a:.1}];
+  const tris=Array.from({length:6},()=>({x:(Math.random()-.5)*160,y:(Math.random()-.5)*160,z:(Math.random()-.5)*80,s:18+Math.random()*28,r:Math.random()*Math.PI*2,rv:(Math.random()-.5)*.006,ph:Math.random()*Math.PI*2,a:.03+Math.random()*.06}));
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const gX=t*.0003+mx*.2,gY=t*.0003*.7+my*.15,fov=400;
+    const g=ctx.createRadialGradient(cx,cy,0,cx,cy,H*.45);
+    g.addColorStop(0,'rgba(212,76,39,0.025)');g.addColorStop(1,'rgba(14,13,11,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    rings.forEach(ring=>{
+      const ang=ring.ph+t*ring.sp;
+      ctx.save();ctx.translate(cx,cy);ctx.rotate(ang*.5);ctx.scale(1,Math.sin(ring.tl));
+      ctx.beginPath();ctx.arc(0,0,ring.r,0,Math.PI*2);
+      ctx.strokeStyle=`${ring.c}${ring.a})`;ctx.lineWidth=.8;ctx.stroke();
+      for(let i=0;i<12;i++){const a=(i/12)*Math.PI*2+ang;ctx.beginPath();ctx.arc(Math.cos(a)*ring.r,Math.sin(a)*ring.r,1.2,0,Math.PI*2);ctx.fillStyle=`${ring.c}${ring.a+.03})`;ctx.fill();}
+      ctx.restore();
+    });
+    const cX=Math.cos(gX),sX=Math.sin(gX),cY=Math.cos(gY),sY=Math.sin(gY);
+    const proj=iv.map(v=>{
+      let[x,y,z]=v;let x2=x*cY+z*sY,z2=-x*sY+z*cY;x=x2;z=z2;
+      let y2=y*cX-z*sX,z3=y*sX+z*cX;y=y2;z=z3;
+      const sc=fov/(fov+z+300);return{px:cx+x*sc,py:cy+y*sc,z,sc};
+    });
+    ctx.lineWidth=.7;
+    [...ie].sort((a,b)=>((proj[a[0]].z+proj[a[1]].z)-(proj[b[0]].z+proj[b[1]].z))/2).forEach(([i,j])=>{
+      const a=proj[i],b=proj[j];const d=((a.z+b.z)/2+200)/400;const al=Math.max(.04,Math.min(.18,d*.16));
+      ctx.beginPath();ctx.moveTo(a.px,a.py);ctx.lineTo(b.px,b.py);ctx.strokeStyle=`${ink}${al})`;ctx.stroke();
+    });
+    proj.forEach(p=>{const d=(p.z+200)/400;ctx.beginPath();ctx.arc(p.px,p.py,1.8*p.sc,0,Math.PI*2);ctx.fillStyle=`${ink}${Math.max(.06,Math.min(.28,d*.25))})`;ctx.fill();});
+    tris.forEach(tri=>{
+      tri.r+=tri.rv;const yo=Math.sin(t*.001+tri.ph)*8;
+      const cx2=Math.cos(gX*.4),sx2=Math.sin(gX*.4);let y=tri.y*cx2-tri.z*sx2+yo,z=tri.y*sx2+tri.z*cx2;
+      const cy2=Math.cos(gY*.4),sy2=Math.sin(gY*.4);let x=tri.x*cy2+z*sy2;z=-tri.x*sy2+z*cy2;
+      const sc=fov/(fov+z+300);
+      ctx.save();ctx.translate(cx+x*sc,cy+y*sc);ctx.rotate(tri.r);
+      ctx.beginPath();ctx.moveTo(0,-tri.s*sc);ctx.lineTo(tri.s*.86*sc,tri.s*.5*sc);ctx.lineTo(-tri.s*.86*sc,tri.s*.5*sc);ctx.closePath();
+      ctx.strokeStyle=`${ember}${tri.a*sc*1.5})`;ctx.lineWidth=.6;ctx.stroke();ctx.restore();
+    });
+    ctx.save();ctx.translate(cx,cy);
+    pts.forEach(p=>{
+      p.x+=p.vx+mx*.8;p.y+=p.vy+my*.8;p.z+=p.vz;
+      const hw=W*.6,hh=H*.6,hz=150;
+      if(p.x>hw)p.x-=hw*2;if(p.x<-hw)p.x+=hw*2;
+      if(p.y>hh)p.y-=hh*2;if(p.y<-hh)p.y+=hh*2;
+      if(p.z>hz)p.z-=hz*2;if(p.z<-hz)p.z+=hz*2;
+      const cx3=Math.cos(gX*.3),sx3=Math.sin(gX*.3);let y=p.y*cx3-p.z*sx3,z=p.y*sx3+p.z*cx3;
+      const sc=fov/(fov+z+300);const al=Math.max(.04,Math.min(.35,(z+150)/300*.3+.05));
+      const col=Math.random()>.85?ember:parchm;const r=p.r*sc;
+      if(p.tp===0){ctx.beginPath();ctx.arc(p.x*sc,y*sc,r,0,Math.PI*2);ctx.fillStyle=`${col}${al})`;ctx.fill();}
+      else if(p.tp===1){ctx.save();ctx.translate(p.x*sc,y*sc);const s=r*2.5;ctx.beginPath();ctx.moveTo(0,-s);ctx.lineTo(0,s);ctx.moveTo(-s,0);ctx.lineTo(s,0);ctx.strokeStyle=`${col}${al*.8})`;ctx.lineWidth=.5;ctx.stroke();ctx.restore();}
+      else{ctx.save();ctx.translate(p.x*sc,y*sc);ctx.rotate(Math.PI/4);const s=r*2;ctx.beginPath();ctx.rect(-s/2,-s/2,s,s);ctx.strokeStyle=`${col}${al*.7})`;ctx.lineWidth=.5;ctx.stroke();ctx.restore();}
+    });
+    ctx.restore();
+    ctx.save();ctx.translate(cx,cy);
+    const pA=0.03+Math.sin(t*.0025)*.015;
+    ctx.beginPath();ctx.moveTo(-12,0);ctx.lineTo(12,0);ctx.moveTo(0,-12);ctx.lineTo(0,12);
+    ctx.strokeStyle=`${ink}${pA})`;ctx.lineWidth=.8;ctx.stroke();
+    ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.strokeStyle=`${ember}${pA*1.5})`;ctx.lineWidth=.6;ctx.stroke();
+    ctx.restore();
+    t++;requestAnimationFrame(draw);
+  }
+  draw();
+})();
+})();
+
+/* ── Submenu: ensure click works (pointer-events fix) ── */
+(function(){
+  document.querySelectorAll('.nav-item').forEach(item=>{
+    const drop = item.querySelector('.nav-drop');
+    if(!drop) return;
+    // Keep dropdown open while moving between link and dropdown
+    let leaveTimer;
+    item.addEventListener('mouseenter',()=>clearTimeout(leaveTimer));
+    item.addEventListener('mouseleave',()=>{
+      leaveTimer = setTimeout(()=>{
+        drop.style.pointerEvents='none';
+        drop.style.opacity='0';
+        drop.style.transform='translateX(-50%) translateY(-8px)';
+      }, 120);
+    });
+    drop.addEventListener('mouseenter',()=>{
+      clearTimeout(leaveTimer);
+      drop.style.pointerEvents='auto';
+      drop.style.opacity='1';
+      drop.style.transform='translateX(-50%) translateY(0)';
+    });
+    drop.addEventListener('mouseleave',()=>{
+      leaveTimer = setTimeout(()=>{
+        drop.style.pointerEvents='none';
+        drop.style.opacity='0';
+        drop.style.transform='translateX(-50%) translateY(-8px)';
+      }, 80);
+    });
+    // click on the parent link area — toggle for touch
+    const link = item.querySelector('.nav-link');
+    if(link){
+      link.addEventListener('click',e=>{
+        // if has dropdown and click is on the link (not on an anchor inside drop)
+        // do nothing — let default navigate. But prevent default only if href="#"
+        if(link.getAttribute('href')==='#' || !link.getAttribute('href')){
+          e.preventDefault();
+        }
+      });
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

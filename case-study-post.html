@@ -1,0 +1,2218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redefining the Dashboard — Dcasel Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Syne:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+@media(pointer:fine){*{cursor:none;}}
+:root{
+  --bone:#f4f1ec;--off:#eae6de;--parchm:#d9d4c9;
+  --mid:#a09b90;--muted:#6e6860;--ink:#0e0d0b;
+  --dark:#141210;--charcoal:#1c1a17;
+  --ember:#d44c27;--ember2:#e86240;
+  --ease:cubic-bezier(0.22,1,0.36,1);
+  --spring:cubic-bezier(0.34,1.56,0.64,1);
+  --toc-w:260px;
+  --nav-h:68px;
+}
+body{font-family:'Syne',sans-serif;background:var(--bone);color:var(--ink);overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+img{display:block;max-width:100%;height:auto;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+
+/* ══════════════════════════════════════════
+   CURSOR  ·  Sun default → Planet on hover
+   Debris / fragment particles via canvas
+   3-D sphere illusion via layered gradients
+══════════════════════════════════════════ */
+@media(pointer:fine){*{cursor:none;}}
+
+/* wrapper — zero size, centred on hot-spot */
+#cur3{
+  display:none;position:fixed;pointer-events:none;z-index:9999;
+  transform:translate(-50%,-50%);will-change:left,top;
+  width:0;height:0;
+}
+@media(pointer:fine){#cur3{display:block;}}
+
+/* ── the orb itself ── */
+#curOrb{
+  position:absolute;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  will-change:transform,width,height,background,box-shadow;
+  overflow:hidden;
+  /* 3-D feel: perspective shadow on bottom-right */
+  filter:drop-shadow(2px 3px 6px rgba(0,0,0,.55));
+  transition:
+    width  .42s cubic-bezier(.34,1.56,.64,1),
+    height .42s cubic-bezier(.34,1.56,.64,1),
+    background .35s ease,
+    box-shadow .35s ease;
+}
+
+/* specular top-left glint — always on, planet-specific colour set inline */
+#curOrb::before{
+  content:'';position:absolute;
+  top:10%;left:13%;
+  width:30%;height:19%;
+  background:rgba(255,255,255,.68);
+  border-radius:50%;
+  transform:rotate(-30deg);
+  filter:blur(1px);
+  pointer-events:none;z-index:5;
+}
+/* bottom-right dark terminator — gives 3-D depth */
+#curOrb::after{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(
+    circle at 68% 72%,
+    rgba(0,0,0,.38) 0%,
+    transparent 60%
+  );
+  pointer-events:none;z-index:4;
+  mix-blend-mode:multiply;
+}
+
+/* ── noise texture layer (child div, so ::after stays for terminator) ── */
+#curNoise{
+  position:absolute;inset:0;border-radius:50%;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='4' seed='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='64' height='64' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E") center/cover;
+  mix-blend-mode:overlay;
+  pointer-events:none;z-index:3;
+  opacity:.7;
+}
+
+/* ── Saturn ring ── */
+#curRing{
+  position:absolute;border-radius:50%;
+  top:50%;left:50%;
+  transform:translate(-50%,-54%) rotateX(72deg);
+  pointer-events:none;z-index:1;
+  opacity:0;
+  transition:opacity .4s ease;
+  /* ring drawn as conic + radial blend */
+}
+#cur3.has-ring #curRing{opacity:1;}
+
+/* ── atmosphere halo (glows around planet edge) ── */
+#curAtmo{
+  position:absolute;border-radius:50%;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  pointer-events:none;z-index:0;
+  opacity:0;
+  transition:opacity .35s ease, width .42s cubic-bezier(.34,1.56,.64,1), height .42s cubic-bezier(.34,1.56,.64,1);
+  filter:blur(6px);
+}
+#cur3.has-atmo #curAtmo{opacity:1;}
+
+/* ── debris canvas layer ── */
+#curCanvas{
+  position:fixed;inset:0;pointer-events:none;z-index:9998;
+  opacity:0;transition:opacity .3s ease;
+}
+#cur3.hov ~ #curCanvas, #curCanvas.active{opacity:1;}
+
+/* ── sun corona spin keyframe ── */
+@keyframes coronaSpin{to{transform:rotate(360deg);}}
+@keyframes sunPulse{
+  0%,100%{box-shadow:0 0 0 1.5px rgba(212,76,39,.4),0 0 10px 3px rgba(212,76,39,.5),0 0 22px 6px rgba(212,76,39,.18),0 0 40px 12px rgba(212,76,39,.07);}
+  50%    {box-shadow:0 0 0 2px   rgba(212,76,39,.55),0 0 16px 5px rgba(212,76,39,.65),0 0 32px 9px rgba(212,76,39,.24),0 0 54px 16px rgba(212,76,39,.1);}
+}
+#curOrb.is-sun{animation:sunPulse 2.6s ease-in-out infinite;}
+#curCorona{
+  position:absolute;inset:-55%;border-radius:50%;pointer-events:none;z-index:0;
+  background:conic-gradient(
+    rgba(255,145,25,.11) 0deg, transparent 50deg,
+    rgba(255,80,12,.08)  100deg,transparent 150deg,
+    rgba(255,145,25,.1)  200deg,transparent 250deg,
+    rgba(255,80,12,.08)  300deg,transparent 360deg
+  );
+  animation:coronaSpin 5s linear infinite;
+  opacity:0;transition:opacity .3s ease;
+}
+#cur3.is-sun #curCorona{opacity:1;}
+
+
+/* PROGRESS */
+#prog{position:fixed;top:0;left:0;height:2px;width:100%;background:var(--ember);z-index:9999;transform:scaleX(0);transform-origin:left;transition:transform .1s linear;}
+
+/* NOISE */
+.noise{position:fixed;inset:0;pointer-events:none;z-index:8000;opacity:.022;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+/* NAV */
+nav{position:fixed;inset:0 0 auto;z-index:500;height:var(--nav-h);padding:0 32px;display:flex;align-items:center;justify-content:space-between;transition:background .45s;}
+nav.stuck{background:rgba(244,241,236,.95);backdrop-filter:blur(20px) saturate(160%);border-bottom:1px solid rgba(14,13,11,.07);}
+.logo{font-family:'Cormorant Garamond',serif;font-size:1.45rem;font-weight:500;letter-spacing:.06em;color:var(--ink);}
+.logo em{font-style:normal;color:var(--ember);}
+.nav-links{display:none;align-items:center;gap:36px;}
+@media(min-width:900px){.nav-links{display:flex;}}
+.nav-link{font-size:.65rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);transition:color .2s;display:flex;align-items:center;gap:5px;}
+.nav-link:hover{color:var(--ink);}
+.nav-cta{display:none;font-size:.64rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:.42rem 1.15rem;border-radius:100px;border:1px solid rgba(14,13,11,.2);transition:background .22s,color .22s;}
+.nav-cta:hover{background:var(--ink);color:var(--bone);}
+@media(min-width:900px){.nav-cta{display:block;}}
+.ham{display:flex;flex-direction:column;justify-content:center;gap:5px;background:none;border:none;padding:8px;margin-right:-8px;width:40px;height:40px;}
+.ham span{display:block;width:22px;height:1.5px;background:var(--ink);border-radius:1px;transition:transform .32s var(--ease),opacity .22s;}
+.ham.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg);}
+.ham.open span:nth-child(2){opacity:0;}
+.ham.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg);}
+@media(min-width:900px){.ham{display:none;}}
+.mob{position:fixed;inset:0;z-index:490;background:var(--ink);display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;padding:0 32px clamp(40px,8vw,64px);transform:translateY(-100%);transition:transform .65s var(--ease);pointer-events:none;}
+.mob.open{transform:translateY(0);pointer-events:auto;}
+.mob-links{display:flex;flex-direction:column;gap:0;margin-bottom:40px;width:100%;}
+.mob-links a{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,8.5vw,3.2rem);font-weight:300;font-style:italic;color:var(--bone);padding:11px 0;border-bottom:1px solid rgba(244,241,236,.07);opacity:0;transform:translateX(-18px);transition:opacity .48s var(--ease),transform .48s var(--ease);}
+.mob.open .mob-links a{opacity:1;transform:translateX(0);}
+.mob.open .mob-links a:nth-child(1){transition-delay:.07s;}
+.mob.open .mob-links a:nth-child(2){transition-delay:.13s;}
+.mob.open .mob-links a:nth-child(3){transition-delay:.19s;}
+.mob.open .mob-links a:nth-child(4){transition-delay:.25s;}
+.mob-links a:hover{color:var(--ember);}
+.mob-btn{display:flex;align-items:center;justify-content:center;width:100%;padding:.95rem;background:var(--ember);border-radius:100px;color:var(--bone);font-size:.76rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:0;transform:translateY(10px);transition:opacity .38s .36s var(--ease),transform .38s .36s var(--ease);}
+.mob.open .mob-btn{opacity:1;transform:translateY(0);}
+
+/* UTILS */
+.rev{opacity:0;transform:translateY(22px);transition:opacity .85s var(--ease),transform .85s var(--ease);}
+.rev.vis{opacity:1;transform:none;}
+.d1{transition-delay:.1s;}.d2{transition-delay:.2s;}.d3{transition-delay:.3s;}.d4{transition-delay:.4s;}
+.sec-tag{font-size:.58rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:10px;}
+.sec-tag::before{content:'';width:18px;height:1px;background:var(--parchm);flex-shrink:0;}
+.btn-p{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--bone);background:var(--ink);padding:.78rem 1.5rem;border-radius:100px;border:none;transition:transform .28s var(--ease),box-shadow .28s;}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(14,13,11,.18);}
+.btn-p svg{width:11px;height:11px;stroke:var(--bone);fill:none;flex-shrink:0;}
+.btn-o{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);padding:.78rem 1.5rem;border-radius:100px;border:1px solid rgba(14,13,11,.18);transition:background .22s;}
+.btn-o:hover{background:var(--off);}
+
+/* ═══════════════════════════════════════
+   HERO — full width, above the layout
+═══════════════════════════════════════ */
+.cs-hero{
+  min-height:92svh;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  padding:0 32px clamp(48px,6vw,72px);
+  position:relative;
+  overflow:hidden;
+  background:var(--dark);
+}
+.cs-hero-cover{
+  position:absolute;inset:0;
+  background:linear-gradient(to bottom,rgba(14,13,11,.18) 0%,rgba(14,13,11,.72) 60%,rgba(14,13,11,.96) 100%);
+  z-index:1;
+}
+.cs-hero-img{
+  position:absolute;inset:0;
+  background:url('https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=90&w=2000&auto=format&fit=crop') center/cover no-repeat;
+  transform:scale(1.04);
+  transition:transform 8s var(--ease);
+}
+.cs-hero-img.loaded{transform:scale(1);}
+.cs-hero-grain{position:absolute;inset:0;pointer-events:none;z-index:2;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='ng'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23ng)'/%3E%3C/svg%3E");}
+.cs-hero-content{position:relative;z-index:3;}
+.cs-hero-meta{display:flex;align-items:center;gap:10px;margin-bottom:clamp(24px,3.5vw,40px);}
+.cs-hero-cat{font-size:.56rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--ember);}
+.cs-hero-sep{width:1px;height:14px;background:rgba(244,241,236,.2);}
+.cs-hero-year{font-size:.56rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,241,236,.32);}
+.cs-hero-h1{font-family:'Cormorant Garamond',serif;font-size:clamp(44px,9vw,120px);font-weight:400;line-height:.88;letter-spacing:-.025em;color:var(--bone);margin-bottom:clamp(24px,3vw,40px);}
+.cs-hero-h1 em{font-style:italic;color:var(--ember);}
+.cs-hero-foot{border-top:1px solid rgba(244,241,236,.1);padding-top:clamp(20px,2.5vw,32px);display:grid;grid-template-columns:1fr;gap:20px;}
+@media(min-width:640px){.cs-hero-foot{grid-template-columns:1fr 1fr 1fr 1fr;gap:0;}}
+.cs-hero-stat{padding-right:24px;}
+@media(min-width:640px){.cs-hero-stat+.cs-hero-stat{border-left:1px solid rgba(244,241,236,.1);padding-left:24px;padding-right:24px;}}
+.cs-hero-stat-label{font-size:.5rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,236,.28);margin-bottom:6px;}
+.cs-hero-stat-val{font-family:'Cormorant Garamond',serif;font-size:clamp(16px,2vw,22px);font-weight:400;color:var(--bone);line-height:1.1;}
+
+/* ═══════════════════════════════════════
+   TWO-COLUMN POST LAYOUT
+   Left: fixed TOC sidebar  |  Right: content
+═══════════════════════════════════════ */
+.post-layout{
+  display:flex;
+  align-items:stretch;
+  min-height:100vh;
+  position:relative;
+}
+
+/* ── LEFT SIDEBAR ── */
+.post-toc{
+  display:none;
+}
+@media(min-width:1024px){
+  .post-toc{
+    display:flex;
+    flex-direction:column;
+    width:var(--toc-w);
+    flex-shrink:0;
+    background:var(--off);
+    border-right:1px solid rgba(14,13,11,.08);
+    position:sticky;
+    top:var(--nav-h);
+    height:calc(100vh - var(--nav-h));
+    overflow-y:auto;
+    scrollbar-width:none;
+  }
+  .post-toc::-webkit-scrollbar{display:none;}
+}
+.toc-header{
+  padding:32px 28px 20px;
+  border-bottom:1px solid rgba(14,13,11,.07);
+}
+.toc-header-label{
+  font-size:.48rem;
+  font-weight:700;
+  letter-spacing:.24em;
+  text-transform:uppercase;
+  color:var(--mid);
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:12px;
+}
+.toc-header-label::before{
+  content:'';
+  width:14px;height:1px;
+  background:var(--parchm);
+  flex-shrink:0;
+}
+.toc-project-name{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.1rem;
+  font-weight:400;
+  line-height:1.15;
+  letter-spacing:-.01em;
+  color:var(--ink);
+}
+.toc-nav{
+  padding:20px 0 32px;
+  flex:1;
+}
+.toc-nav-item{
+  display:flex;
+  align-items:center;
+  gap:0;
+  padding:0;
+  cursor:pointer;
+  text-decoration:none;
+  color:inherit;
+  position:relative;
+  transition:background .22s;
+  border-left:2px solid transparent;
+}
+.toc-nav-item::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:var(--bone);
+  opacity:0;
+  transition:opacity .22s;
+  pointer-events:none;
+}
+.toc-nav-item:hover::before{opacity:1;}
+.toc-nav-item.active{
+  border-left-color:var(--ember);
+  background:var(--bone);
+}
+.toc-nav-item.active::before{opacity:1;}
+.toc-nav-inner{
+  display:flex;
+  align-items:baseline;
+  gap:12px;
+  padding:10px 28px 10px 24px;
+  width:100%;
+  position:relative;
+  z-index:1;
+}
+.toc-nav-num{
+  font-size:.5rem;
+  font-weight:700;
+  letter-spacing:.12em;
+  color:var(--mid);
+  flex-shrink:0;
+  min-width:20px;
+  transition:color .22s;
+  line-height:1;
+}
+.toc-nav-item.active .toc-nav-num{color:var(--ember);}
+.toc-nav-slash{
+  font-size:.5rem;
+  font-weight:600;
+  color:rgba(14,13,11,.18);
+  flex-shrink:0;
+  transition:color .22s;
+  line-height:1;
+}
+.toc-nav-item.active .toc-nav-slash{color:rgba(212,76,39,.35);}
+.toc-nav-text{
+  font-size:.72rem;
+  font-weight:600;
+  letter-spacing:.02em;
+  color:var(--muted);
+  line-height:1.3;
+  transition:color .22s;
+}
+.toc-nav-item:hover .toc-nav-text{color:var(--ink);}
+.toc-nav-item.active .toc-nav-text{color:var(--ink);font-weight:700;}
+.toc-footer{
+  padding:20px 28px 24px;
+  border-top:1px solid rgba(14,13,11,.07);
+  margin-top:auto;
+}
+.toc-back{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  font-size:.58rem;
+  font-weight:700;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--muted);
+  transition:color .22s;
+}
+.toc-back:hover{color:var(--ember);}
+.toc-back svg{width:12px;height:12px;stroke:currentColor;fill:none;transition:transform .28s var(--ease);}
+.toc-back:hover svg{transform:translateX(-3px);}
+
+/* ── RIGHT CONTENT ── */
+.post-content{
+  flex:1;
+  min-width:0;
+}
+
+/* ═══════════════════════════════════════
+   SECTION BASE + MOBILE PADDING
+═══════════════════════════════════════ */
+.cs-section{
+  padding:clamp(56px,8vw,100px) clamp(24px,5vw,72px);
+  scroll-margin-top:calc(var(--nav-h) + 16px);
+}
+
+/* ═══════════════════════════════════════
+   01 — SUMMARY
+═══════════════════════════════════════ */
+#s1{background:var(--bone);}
+.summary-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:48px;
+}
+@media(min-width:860px){.summary-grid{grid-template-columns:1fr 1fr;gap:64px;align-items:start;}}
+.summary-lead{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(24px,3.5vw,40px);
+  font-weight:400;
+  line-height:1.25;
+  letter-spacing:-.015em;
+  color:var(--ink);
+}
+.summary-body{
+  font-size:.86rem;
+  font-weight:500;
+  line-height:1.92;
+  color:var(--muted);
+}
+.summary-body p+p{margin-top:16px;}
+.summary-pills{display:flex;flex-wrap:wrap;gap:7px;margin-top:28px;}
+.summary-pill{font-size:.52rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:.28rem .9rem;border:1px solid rgba(14,13,11,.14);border-radius:100px;}
+.summary-stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(14,13,11,.07);border:1px solid rgba(14,13,11,.07);margin-top:40px;}
+.stat-box{background:var(--bone);padding:20px 18px;}
+.stat-val{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,4vw,48px);font-weight:300;line-height:1;color:var(--ink);margin-bottom:4px;}
+.stat-val em{font-style:normal;color:var(--ember);}
+.stat-lbl{font-size:.52rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mid);}
+
+/* ═══════════════════════════════════════
+   02 — THE PROBLEM
+═══════════════════════════════════════ */
+#s2{background:var(--ink);}
+.section-hd{margin-bottom:clamp(36px,5vw,56px);}
+.section-num{font-size:.5rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,241,236,.2);margin-bottom:10px;display:block;}
+.section-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,5.5vw,68px);font-weight:300;line-height:.9;letter-spacing:-.02em;color:var(--bone);}
+.section-title em{font-style:italic;color:var(--ember);}
+.problem-body{font-size:.9rem;font-weight:500;line-height:1.92;color:rgba(244,241,236,.45);max-width:64ch;}
+.problem-body p+p{margin-top:20px;}
+.problem-cards{display:grid;grid-template-columns:1fr;gap:16px;margin-top:40px;}
+@media(min-width:640px){.problem-cards{grid-template-columns:1fr 1fr;}}
+@media(min-width:1100px){.problem-cards{grid-template-columns:1fr 1fr 1fr;}}
+.prob-card{background:rgba(244,241,236,.04);border:1px solid rgba(244,241,236,.06);padding:24px 20px;border-radius:2px;transition:background .32s,border-color .32s;}
+.prob-card:hover{background:rgba(244,241,236,.07);border-color:rgba(212,76,39,.2);}
+.prob-card-n{font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:300;color:var(--ember);opacity:.4;line-height:1;margin-bottom:12px;}
+.prob-card-title{font-size:.76rem;font-weight:700;letter-spacing:.06em;color:var(--bone);margin-bottom:8px;}
+.prob-card-body{font-size:.78rem;font-weight:500;line-height:1.8;color:rgba(244,241,236,.35);}
+
+/* ═══════════════════════════════════════
+   03 — USERS & RESEARCH
+═══════════════════════════════════════ */
+#s3{background:var(--off);}
+.section-title-dark{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,5.5vw,68px);font-weight:300;line-height:.9;letter-spacing:-.02em;color:var(--ink);}
+.section-title-dark em{font-style:italic;color:var(--muted);}
+.section-num-dark{font-size:.5rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--mid);margin-bottom:10px;display:block;}
+.research-intro{font-size:.88rem;font-weight:500;line-height:1.9;color:var(--muted);max-width:58ch;margin-top:20px;margin-bottom:44px;}
+.persona-grid{display:grid;grid-template-columns:1fr;gap:20px;}
+@media(min-width:640px){.persona-grid{grid-template-columns:1fr 1fr;}}
+@media(min-width:1100px){.persona-grid{grid-template-columns:1fr 1fr 1fr;}}
+.persona-card{background:var(--bone);border:1px solid rgba(14,13,11,.07);padding:28px 24px;border-radius:2px;transition:transform .32s var(--ease),box-shadow .32s;}
+.persona-card:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(14,13,11,.08);}
+.persona-avatar{width:44px;height:44px;border-radius:50%;background:var(--parchm);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:400;color:var(--muted);margin-bottom:16px;}
+.persona-name{font-size:.8rem;font-weight:700;letter-spacing:.04em;color:var(--ink);margin-bottom:4px;}
+.persona-role{font-size:.64rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--mid);margin-bottom:14px;}
+.persona-quote{font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:400;font-style:italic;line-height:1.55;color:var(--muted);border-left:2px solid var(--ember);padding-left:12px;}
+.research-methods{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:44px;}
+@media(min-width:860px){.research-methods{grid-template-columns:repeat(4,1fr);}}
+.method-item{background:var(--bone);border:1px solid rgba(14,13,11,.07);padding:16px 14px;}
+.method-icon{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:300;color:var(--ember);opacity:.6;margin-bottom:8px;}
+.method-name{font-size:.68rem;font-weight:700;letter-spacing:.08em;color:var(--ink);}
+.method-n{font-size:.58rem;font-weight:600;color:var(--mid);margin-top:4px;}
+
+/* ═══════════════════════════════════════
+   04 — FRUSTRATIONS & FINDINGS
+═══════════════════════════════════════ */
+#s4{background:var(--charcoal);}
+.findings-intro{font-size:.88rem;font-weight:500;line-height:1.9;color:rgba(244,241,236,.42);max-width:58ch;margin-top:20px;margin-bottom:44px;}
+.findings-list{display:flex;flex-direction:column;border-top:1px solid rgba(244,241,236,.06);}
+.finding-row{display:grid;grid-template-columns:52px 1fr;gap:20px;padding:clamp(20px,3vw,32px) 0;border-bottom:1px solid rgba(244,241,236,.06);align-items:start;transition:padding-left .32s var(--ease);}
+.finding-row:hover{padding-left:10px;}
+@media(min-width:768px){.finding-row{grid-template-columns:72px 1fr auto;gap:32px;align-items:center;}}
+.finding-n{font-family:'Cormorant Garamond',serif;font-size:clamp(1.8rem,3vw,3rem);font-weight:300;color:rgba(244,241,236,.08);line-height:1;transition:color .32s;}
+.finding-row:hover .finding-n{color:var(--ember);}
+.finding-body{}
+.finding-title{font-size:.84rem;font-weight:700;letter-spacing:.04em;color:var(--bone);margin-bottom:6px;transition:color .28s;}
+.finding-row:hover .finding-title{color:var(--ember);}
+.finding-desc{font-size:.78rem;font-weight:500;line-height:1.82;color:rgba(244,241,236,.35);}
+.finding-sev{display:none;}
+@media(min-width:768px){.finding-sev{display:flex;align-items:center;gap:4px;flex-shrink:0;}}
+.sev-dot{width:6px;height:6px;border-radius:50%;}
+.sev-dot.high{background:var(--ember);}
+.sev-dot.med{background:rgba(212,76,39,.45);}
+.sev-dot.low{background:rgba(212,76,39,.2);}
+.sev-label{font-size:.5rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,236,.25);}
+
+/* ═══════════════════════════════════════
+   05 — REDESIGN
+═══════════════════════════════════════ */
+#s5{background:var(--bone);}
+.redesign-intro{font-size:.88rem;font-weight:500;line-height:1.9;color:var(--muted);max-width:58ch;margin-top:20px;margin-bottom:44px;}
+.redesign-showcase{display:flex;flex-direction:column;gap:24px;}
+.showcase-item{position:relative;overflow:hidden;background:var(--dark);border-radius:2px;}
+.showcase-item.tall{aspect-ratio:16/9;}
+.showcase-item.half{aspect-ratio:4/3;}
+.showcase-pair{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.showcase-img{width:100%;height:100%;object-fit:cover;filter:grayscale(15%) brightness(.7);transition:filter .8s var(--ease),transform .9s var(--ease);}
+.showcase-item:hover .showcase-img{filter:grayscale(0%) brightness(.85);transform:scale(1.02);}
+.showcase-caption{position:absolute;bottom:0;left:0;right:0;padding:16px 18px;background:linear-gradient(to top,rgba(14,13,11,.96) 0%,transparent 100%);}
+.showcase-cap-label{font-size:.5rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ember);margin-bottom:4px;display:block;}
+.showcase-cap-title{font-family:'Cormorant Garamond',serif;font-size:clamp(14px,1.8vw,20px);font-weight:400;color:var(--bone);}
+.redesign-principles{display:grid;grid-template-columns:1fr;gap:16px;margin-top:44px;}
+@media(min-width:640px){.redesign-principles{grid-template-columns:1fr 1fr;}}
+.principle-item{display:flex;align-items:flex-start;gap:14px;padding:20px;background:var(--off);border-radius:2px;transition:background .22s;}
+.principle-item:hover{background:var(--parchm);}
+.principle-num{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:300;color:var(--ember);opacity:.5;flex-shrink:0;line-height:1;}
+.principle-body{}
+.principle-title{font-size:.76rem;font-weight:700;letter-spacing:.04em;color:var(--ink);margin-bottom:5px;}
+.principle-desc{font-size:.74rem;font-weight:500;line-height:1.75;color:var(--muted);}
+
+/* ═══════════════════════════════════════
+   06 — USER TESTING
+═══════════════════════════════════════ */
+#s6{background:var(--ink);}
+.testing-intro{font-size:.88rem;font-weight:500;line-height:1.9;color:rgba(244,241,236,.42);max-width:58ch;margin-top:20px;margin-bottom:44px;}
+.testing-metrics{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(244,241,236,.05);border:1px solid rgba(244,241,236,.05);margin-bottom:44px;}
+@media(min-width:640px){.testing-metrics{grid-template-columns:repeat(4,1fr);}}
+.metric-box{background:var(--dark);padding:24px 20px;text-align:center;}
+.metric-val{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,4vw,56px);font-weight:300;color:var(--bone);line-height:1;margin-bottom:4px;}
+.metric-val em{font-style:normal;color:var(--ember);}
+.metric-change{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(212,76,39,.8);margin-bottom:8px;display:block;}
+.metric-label{font-size:.5rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,236,.22);}
+.quotes-list{display:flex;flex-direction:column;gap:16px;}
+.quote-card{background:rgba(244,241,236,.03);border:1px solid rgba(244,241,236,.06);padding:24px;border-radius:2px;border-left:2px solid var(--ember);transition:background .28s;}
+.quote-card:hover{background:rgba(244,241,236,.06);}
+.quote-text{font-family:'Cormorant Garamond',serif;font-size:clamp(16px,2vw,22px);font-weight:400;font-style:italic;line-height:1.55;color:rgba(244,241,236,.7);margin-bottom:14px;}
+.quote-meta{display:flex;align-items:center;gap:8px;}
+.quote-avatar{width:28px;height:28px;border-radius:50%;background:rgba(244,241,236,.06);display:flex;align-items:center;justify-content:center;font-size:.52rem;font-weight:700;color:rgba(244,241,236,.3);flex-shrink:0;}
+.quote-name{font-size:.56rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,236,.3);}
+
+/* ═══════════════════════════════════════
+   07 — SNIPPETS
+═══════════════════════════════════════ */
+#s7{background:var(--off);}
+.snippets-intro{font-size:.88rem;font-weight:500;line-height:1.9;color:var(--muted);max-width:58ch;margin-top:20px;margin-bottom:44px;}
+.snippets-grid{display:grid;grid-template-columns:1fr;gap:20px;}
+@media(min-width:640px){.snippets-grid{grid-template-columns:1fr 1fr;}}
+@media(min-width:1100px){.snippets-grid{grid-template-columns:1fr 1fr 1fr;}}
+.snippet-card{background:var(--bone);border:1px solid rgba(14,13,11,.07);overflow:hidden;border-radius:2px;transition:transform .32s var(--ease),box-shadow .32s;}
+.snippet-card:hover{transform:translateY(-4px);box-shadow:0 20px 48px rgba(14,13,11,.1);}
+.snippet-img{aspect-ratio:16/10;overflow:hidden;}
+.snippet-img img{width:100%;height:100%;object-fit:cover;filter:grayscale(10%) brightness(.75);transition:filter .8s var(--ease),transform .9s var(--ease);}
+.snippet-card:hover .snippet-img img{filter:grayscale(0%) brightness(.88);transform:scale(1.03);}
+.snippet-body{padding:18px 16px;}
+.snippet-tag{font-size:.48rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ember);margin-bottom:6px;display:block;}
+.snippet-title{font-family:'Cormorant Garamond',serif;font-size:clamp(16px,2vw,22px);font-weight:400;color:var(--ink);letter-spacing:-.01em;margin-bottom:6px;}
+.snippet-desc{font-size:.72rem;font-weight:500;line-height:1.75;color:var(--muted);}
+
+/* ═══════════════════════════════════════
+   08 — IMPACT & LEARNINGS
+═══════════════════════════════════════ */
+#s8{background:var(--bone);}
+.impact-grid{display:grid;grid-template-columns:1fr;gap:60px;}
+@media(min-width:860px){.impact-grid{grid-template-columns:1fr 1fr;gap:80px;align-items:start;}}
+.impact-results{margin-top:28px;}
+.impact-result-row{display:flex;align-items:flex-start;gap:14px;padding:20px 0;border-bottom:1px solid rgba(14,13,11,.07);transition:padding-left .28s var(--ease);}
+.impact-result-row:first-child{border-top:1px solid rgba(14,13,11,.07);}
+.impact-result-row:hover{padding-left:8px;}
+.impact-result-icon{width:32px;height:32px;border-radius:50%;background:rgba(212,76,39,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.impact-result-icon svg{width:13px;height:13px;stroke:var(--ember);fill:none;}
+.impact-result-body{}
+.impact-result-title{font-size:.8rem;font-weight:700;letter-spacing:.04em;color:var(--ink);margin-bottom:4px;}
+.impact-result-desc{font-size:.74rem;font-weight:500;line-height:1.75;color:var(--muted);}
+.learnings-list{margin-top:28px;display:flex;flex-direction:column;gap:20px;}
+.learning-item{display:flex;gap:16px;align-items:flex-start;}
+.learning-num{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:300;color:var(--parchm);line-height:1;flex-shrink:0;width:28px;text-align:right;}
+.learning-body{}
+.learning-title{font-size:.8rem;font-weight:700;letter-spacing:.04em;color:var(--ink);margin-bottom:5px;}
+.learning-desc{font-size:.75rem;font-weight:500;line-height:1.78;color:var(--muted);}
+
+/* ═══════════════════════════════════════
+   09 — WHAT'S NEXT
+═══════════════════════════════════════ */
+#s9{background:var(--dark);}
+.next-intro{font-size:.88rem;font-weight:500;line-height:1.9;color:rgba(244,241,236,.42);max-width:58ch;margin-top:20px;margin-bottom:44px;}
+.next-roadmap{display:flex;flex-direction:column;}
+.next-item{display:grid;grid-template-columns:60px 1fr;gap:0;padding:clamp(20px,3vw,32px) 0;border-top:1px solid rgba(244,241,236,.06);transition:padding-left .36s var(--ease);}
+.next-item:last-child{border-bottom:1px solid rgba(244,241,236,.06);}
+.next-item:hover{padding-left:12px;}
+@media(min-width:768px){.next-item{grid-template-columns:80px 1fr auto;gap:32px;align-items:center;}}
+.next-n{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,3.5vw,3rem);font-weight:300;color:rgba(244,241,236,.07);line-height:1;transition:color .36s;}
+.next-item:hover .next-n{color:var(--ember);}
+.next-body{padding-left:16px;}
+@media(min-width:768px){.next-body{padding-left:0;}}
+.next-title{font-family:'Cormorant Garamond',serif;font-size:clamp(18px,2.4vw,32px);font-weight:400;color:var(--bone);line-height:1;letter-spacing:-.01em;margin-bottom:8px;transition:color .28s;}
+.next-item:hover .next-title{color:var(--ember);}
+.next-desc{font-size:.78rem;font-weight:500;line-height:1.82;color:rgba(244,241,236,.3);}
+.next-badge{display:none;}
+@media(min-width:768px){.next-badge{display:inline-flex;font-size:.48rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:.24rem .8rem;border-radius:100px;flex-shrink:0;}}
+.badge-planned{background:rgba(244,241,236,.05);color:rgba(244,241,236,.3);border:1px solid rgba(244,241,236,.08);}
+.badge-progress{background:rgba(212,76,39,.12);color:rgba(212,76,39,.8);border:1px solid rgba(212,76,39,.2);}
+.next-cta{margin-top:56px;padding-top:44px;border-top:1px solid rgba(244,241,236,.06);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:24px;}
+.next-cta-text{font-family:'Cormorant Garamond',serif;font-size:clamp(22px,3.5vw,44px);font-weight:300;font-style:italic;color:rgba(244,241,236,.5);line-height:1.1;}
+.next-cta-text em{font-style:normal;color:var(--ember);}
+.next-cta-btns{display:flex;gap:12px;flex-wrap:wrap;}
+
+/* FOOTER */
+footer{background:var(--ink);padding:clamp(60px,8vw,80px) 32px clamp(28px,4vw,40px);}
+.ft-g{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:clamp(48px,7vw,64px);}
+@media(min-width:960px){.ft-g{grid-template-columns:2fr 1fr 1fr 1fr;}}
+.ft-logo{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:400;color:var(--bone);display:block;margin-bottom:14px;}
+.ft-logo em{font-style:normal;color:var(--ember);}
+.ft-desc{font-size:.78rem;font-weight:500;line-height:1.78;color:rgba(244,241,236,.28);max-width:28ch;margin-bottom:22px;}
+.ft-socs{display:flex;gap:10px;}
+.ft-soc{width:34px;height:34px;border-radius:50%;border:1px solid rgba(244,241,236,.1);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:rgba(244,241,236,.3);transition:border-color .22s,color .22s;}
+.ft-soc:hover{border-color:var(--ember);color:var(--ember);}
+.ft-col h4{font-size:.56rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,241,236,.28);margin-bottom:18px;}
+.ft-col ul{list-style:none;display:flex;flex-direction:column;gap:9px;}
+.ft-col a{font-size:.76rem;font-weight:500;color:rgba(244,241,236,.38);transition:color .2s;}
+.ft-col a:hover{color:var(--bone);}
+.ft-bot{padding-top:22px;border-top:1px solid rgba(244,241,236,.07);display:flex;flex-direction:column;gap:6px;}
+@media(min-width:600px){.ft-bot{flex-direction:row;justify-content:space-between;align-items:center;}}
+.ft-copy,.ft-made{font-size:.68rem;font-weight:500;color:rgba(244,241,236,.18);}
+.ft-made em{font-style:normal;color:var(--ember);}
+
+/* ── NAV & HERO FIXES ── */
+:root{--nav-h:68px;}
+@media(max-width:767px){:root{--nav-h:60px;}}
+
+/* Fix submenu: bridge gap between link and dropdown so mouse doesn't lose hover */
+.nav-item::after{
+  content:'';position:absolute;
+  top:100%;left:0;right:0;
+  height:20px; /* bridges the gap */
+  background:transparent;
+}
+.nav-drop{
+  top:calc(100% + 1px); /* reduced gap, relies on ::after for bridge */
+}
+/* Ensure dropdown is above everything */
+.nav-item:hover .nav-drop{
+  pointer-events:auto;
+  z-index:600;
+}
+.nav-drop a{
+  pointer-events:auto;
+  cursor:pointer;
+}
+
+/* ── Hero spacing fix: always leave room for fixed nav ── */
+.pg-hero{padding-top:calc(var(--nav-h) + 24px);}
+#hero{padding-top:var(--nav-h);}
+.cs-hero{padding-top:var(--nav-h);}
+.post-layout{padding-top:0;}
+
+/* ── Fix TOC sidebar top offset in case-study ── */
+.post-toc{top:var(--nav-h) !important;height:calc(100vh - var(--nav-h)) !important;}
+
+/* ── "View" label: keep it but move it away from nav area ── */
+#curLbl{
+  position:fixed !important;
+  top:auto !important;
+  pointer-events:none;
+  z-index:9996;
+  font-size:.56rem;
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--ink);
+  background:var(--bone);
+  border:1px solid rgba(14,13,11,.1);
+  padding:.28rem .7rem;
+  border-radius:100px;
+  white-space:nowrap;
+  opacity:0;
+  transform:translate(-50%,14px);
+  transition:opacity .22s,transform .22s;
+}
+#curLbl.vis{opacity:1;transform:translate(-50%,18px);}
+
+
+/* ── Dynamic Gallery (Section 07 Snippets) ── */
+.gallery-wrap{position:relative;}
+
+/* Filter tabs */
+.gal-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px;}
+.gal-tab{
+  font-size:.54rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  padding:.3rem .9rem;border-radius:100px;
+  border:1px solid rgba(14,13,11,.14);
+  color:var(--muted);background:transparent;
+  cursor:pointer;transition:background .2s,color .2s,border-color .2s;
+}
+.gal-tab:hover{background:var(--off);color:var(--ink);}
+.gal-tab.active{background:var(--ink);color:var(--bone);border-color:var(--ink);}
+
+/* Masonry grid */
+.gal-grid{
+  columns:1;gap:16px;
+  transition:opacity .3s ease;
+}
+@media(min-width:540px){.gal-grid{columns:2;gap:16px;}}
+@media(min-width:900px){.gal-grid{columns:3;gap:16px;}}
+
+.gal-item{
+  break-inside:avoid;
+  margin-bottom:16px;
+  position:relative;overflow:hidden;
+  border-radius:2px;background:var(--dark);
+  cursor:pointer;
+  opacity:1;transform:translateY(0);
+  transition:transform .32s var(--ease),box-shadow .32s,opacity .28s;
+}
+.gal-item:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(14,13,11,.18);}
+.gal-item.hidden{display:none;}
+.gal-item img{
+  width:100%;display:block;
+  object-fit:cover;
+  filter:grayscale(10%) brightness(.75);
+  transition:filter .7s var(--ease),transform .8s var(--ease);
+}
+.gal-item:hover img{filter:grayscale(0%) brightness(.9);transform:scale(1.04);}
+.gal-caption{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:20px 16px 14px;
+  background:linear-gradient(to top,rgba(14,13,11,.94) 0%,transparent 100%);
+  transform:translateY(4px);opacity:0;
+  transition:opacity .3s,transform .3s;
+}
+.gal-item:hover .gal-caption{opacity:1;transform:translateY(0);}
+.gal-cap-tag{font-size:.46rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ember);display:block;margin-bottom:4px;}
+.gal-cap-title{font-family:'Cormorant Garamond',serif;font-size:clamp(13px,1.6vw,18px);font-weight:400;color:var(--bone);line-height:1.2;}
+
+/* Expand button */
+.gal-more{
+  display:flex;justify-content:center;margin-top:28px;
+}
+.gal-more-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding:.65rem 1.6rem;
+  border-radius:100px;border:1px solid rgba(14,13,11,.15);
+  background:transparent;cursor:pointer;
+  transition:background .22s,color .22s,border-color .22s;
+}
+.gal-more-btn:hover{background:var(--ink);color:var(--bone);border-color:var(--ink);}
+.gal-more-btn svg{width:10px;height:10px;stroke:currentColor;fill:none;}
+
+/* Lightbox */
+.gal-lb{
+  position:fixed;inset:0;z-index:10000;
+  background:rgba(14,13,11,.96);
+  backdrop-filter:blur(12px);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity .32s ease;
+}
+.gal-lb.open{opacity:1;pointer-events:auto;}
+.gal-lb-inner{
+  position:relative;
+  max-width:min(90vw,1100px);
+  max-height:90vh;
+  display:flex;flex-direction:column;
+  align-items:center;
+}
+.gal-lb-img{
+  max-width:100%;max-height:78vh;
+  object-fit:contain;display:block;
+  border-radius:2px;
+  transform:scale(.96);opacity:0;
+  transition:transform .36s var(--ease),opacity .32s ease;
+}
+.gal-lb.open .gal-lb-img{transform:scale(1);opacity:1;}
+.gal-lb-meta{
+  margin-top:16px;text-align:center;
+}
+.gal-lb-tag{font-size:.5rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ember);display:block;margin-bottom:4px;}
+.gal-lb-title{font-family:'Cormorant Garamond',serif;font-size:clamp(16px,2vw,24px);font-weight:400;color:var(--bone);}
+.gal-lb-close{
+  position:fixed;top:20px;right:24px;
+  background:rgba(244,241,236,.08);border:1px solid rgba(244,241,236,.12);
+  width:40px;height:40px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:rgba(244,241,236,.6);
+  transition:background .2s,color .2s;font-size:1.2rem;
+}
+.gal-lb-close:hover{background:var(--ember);color:var(--bone);}
+.gal-lb-prev,.gal-lb-next{
+  position:fixed;top:50%;transform:translateY(-50%);
+  background:rgba(244,241,236,.07);border:1px solid rgba(244,241,236,.1);
+  width:44px;height:44px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:background .22s;
+}
+.gal-lb-prev{left:16px;}.gal-lb-next{right:16px;}
+.gal-lb-prev:hover,.gal-lb-next:hover{background:var(--ember);border-color:var(--ember);}
+.gal-lb-prev svg,.gal-lb-next svg{width:14px;height:14px;stroke:rgba(244,241,236,.7);fill:none;}
+.gal-lb-prev:hover svg,.gal-lb-next svg{stroke:var(--bone);}
+.gal-lb-counter{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  font-size:.56rem;font-weight:700;letter-spacing:.14em;
+  color:rgba(244,241,236,.35);
+}
+
+</style>
+</head>
+<body>
+<div class="noise" aria-hidden="true"></div>
+<div id="prog" aria-hidden="true"></div>
+<!-- CURSOR -->
+<canvas id="curCanvas" aria-hidden="true"></canvas>
+<div id="cur3" aria-hidden="true">
+  <div id="curAtmo"></div>
+  <div id="curRing"></div>
+  <div id="curOrb">
+    <div id="curNoise"></div>
+    <div id="curCorona"></div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav id="nav">
+  <a href="index.html" class="logo">DC<em>.</em>ASEL</a>
+  <div class="nav-links">
+    <a href="index.html#services" class="nav-link">Services</a>
+    <a href="index.html#work" class="nav-link active">Work</a>
+    <a href="about.html" class="nav-link">Studio</a>
+  </div>
+  <a href="index.html#cta" class="nav-cta">Start a Project</a>
+  <button class="ham" id="hamBtn" aria-label="Toggle menu"><span></span><span></span><span></span></button>
+</nav>
+<div class="mob" id="mobMenu">
+  <nav class="mob-links">
+    <a href="index.html#services" class="mm">Services</a>
+    <a href="index.html#work" class="mm">Work</a>
+    <a href="about.html" class="mm">Studio</a>
+    <a href="index.html#cta" class="mm">Contact</a>
+  </nav>
+  <a href="index.html#cta" class="mob-btn mm">Start a Project →</a>
+</div>
+
+<!-- HERO — full-width, above layout -->
+<section class="cs-hero" id="cs-hero">
+  <div class="cs-hero-img" id="heroImg"></div>
+  <div class="cs-hero-cover"></div>
+  <div class="cs-hero-grain" aria-hidden="true"></div>
+  <div class="cs-hero-content">
+    <div class="cs-hero-meta">
+      <span class="cs-hero-cat">Product Design</span>
+      <span class="cs-hero-sep"></span>
+      <span class="cs-hero-year">2024</span>
+    </div>
+    <h1 class="cs-hero-h1">Redefining how<br>users explore <em>data.</em></h1>
+    <div class="cs-hero-foot">
+      <div class="cs-hero-stat">
+        <div class="cs-hero-stat-label">Client</div>
+        <div class="cs-hero-stat-val">Prism Analytics</div>
+      </div>
+      <div class="cs-hero-stat">
+        <div class="cs-hero-stat-label">Role</div>
+        <div class="cs-hero-stat-val">Lead Product Designer</div>
+      </div>
+      <div class="cs-hero-stat">
+        <div class="cs-hero-stat-label">Timeline</div>
+        <div class="cs-hero-stat-val">14 Weeks</div>
+      </div>
+      <div class="cs-hero-stat">
+        <div class="cs-hero-stat-label">Outcome</div>
+        <div class="cs-hero-stat-val">+67% Task Completion</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TWO-COLUMN LAYOUT: TOC LEFT + CONTENT RIGHT -->
+<div class="post-layout">
+
+  <!-- LEFT: STICKY TOC SIDEBAR -->
+  <aside class="post-toc" id="postToc" aria-label="Table of contents">
+    <div class="toc-header">
+      <div class="toc-header-label">Contents</div>
+      <div class="toc-project-name">Prism Analytics<br>Dashboard Redesign</div>
+    </div>
+    <nav class="toc-nav">
+      <a class="toc-nav-item active" href="#s1" data-sec="s1">
+        <div class="toc-nav-inner">
+          <span class="toc-nav-num">01</span>
+          <span class="toc-nav-slash">/</span>
+          <span class="toc-nav-text">Summary</span>
+        </div>
+      </a>
+      <a class="toc-nav-item" href="#s2" data-sec="s2">
+        <div class="toc-nav-inner">
+          <span class="toc-nav-num">02</span>
+          <span class="toc-nav-slash">/</span>
+          <span class="toc-nav-text">The Problem</span>
+        </div>
+      </a>
+      <a class="toc-nav-item" href="#s3" data-sec="s3">
+        <div class="toc-nav-inner">
+          <span class="toc-nav-num">03</span>
+          <span class="toc-nav-slash">/</span>
+          <span class="toc-nav-text">Users & Research</span>
+        </div>
+      </a>
+      <a class="toc-nav-item" href="#s4" data-sec="s4">
+        <div class="toc-nav-inner">
+          <span class="toc-nav-num">04</span>
+          <span class="toc-nav-slash">/</span>
+          <span class="toc-nav-text">Frustrations & Findings</span>
+        </div>
+      </a>
+      <a class="toc-nav-item" href="#s5" data-sec="s5">
+        <div class="toc-nav-inner">
+          <span class="toc-nav-num">05</span>
+          <span class="toc-nav-slash">/</span>
+          <span class="toc-nav-text">Redesign</span>
+        </div>
+      </a>
+      <a class="toc-nav-item" href="#s6" data-sec="s6">
+        <div class="toc-nav-inner">
+          <span class="toc-nav-num">06</span>
+          <span class="toc-nav-slash">/</span>
+          <span class="toc-nav-text">User Testing</span>
+        </div>
+      </a>
+      <a class="toc-nav-item" href="#s7" data-sec="s7">
+        <div class="toc-nav-inner">
+          <span class="toc-nav-num">07</span>
+          <span class="toc-nav-slash">/</span>
+          <span class="toc-nav-text">Snippets</span>
+        </div>
+      </a>
+      <a class="toc-nav-item" href="#s8" data-sec="s8">
+        <div class="toc-nav-inner">
+          <span class="toc-nav-num">08</span>
+          <span class="toc-nav-slash">/</span>
+          <span class="toc-nav-text">Impact & Learnings</span>
+        </div>
+      </a>
+      <a class="toc-nav-item" href="#s9" data-sec="s9">
+        <div class="toc-nav-inner">
+          <span class="toc-nav-num">09</span>
+          <span class="toc-nav-slash">/</span>
+          <span class="toc-nav-text">What's Next</span>
+        </div>
+      </a>
+    </nav>
+    <div class="toc-footer">
+      <a href="index.html#work" class="toc-back">
+        <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M19 12H5M12 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        All Case Studies
+      </a>
+    </div>
+  </aside>
+
+  <!-- RIGHT: CONTENT -->
+  <main class="post-content">
+
+    <!-- 01 SUMMARY -->
+    <section class="cs-section" id="s1">
+      <div class="section-hd">
+        <span class="section-num-dark">01</span>
+        <h2 class="section-title-dark">Summary</h2>
+      </div>
+      <div class="summary-grid">
+        <div>
+          <p class="summary-lead rev">Prism's analytics dashboard was powerful — but so complex that 63% of users never made it past the first screen.</p>
+          <div class="summary-pills">
+            <span class="summary-pill">Product Design</span>
+            <span class="summary-pill">UX Research</span>
+            <span class="summary-pill">Prototyping</span>
+            <span class="summary-pill">Design System</span>
+            <span class="summary-pill">Usability Testing</span>
+          </div>
+        </div>
+        <div>
+          <div class="summary-body rev d2">
+            <p>We were brought in to redesign the core dashboard experience for Prism Analytics — a B2B SaaS platform serving 50,000+ data analysts. The product had accumulated years of feature debt, and users were bouncing without ever getting value.</p>
+            <p>Over 14 weeks, we ran a full research-to-production process: interviews, heuristic audits, competitive analysis, multiple prototype rounds, and two usability test cycles. The result was a completely new information architecture and interaction model that reduced time-to-insight by 54%.</p>
+          </div>
+          <div class="summary-stats rev d3">
+            <div class="stat-box">
+              <div class="stat-val">67<em>%</em></div>
+              <div class="stat-lbl">Task Completion ↑</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val">54<em>%</em></div>
+              <div class="stat-lbl">Time to Insight ↓</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val">4.6</div>
+              <div class="stat-lbl">SUS Score (was 2.9)</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val">28<em>%</em></div>
+              <div class="stat-lbl">Churn Reduction</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 THE PROBLEM -->
+    <section class="cs-section" id="s2">
+      <div class="section-hd">
+        <span class="section-num">02</span>
+        <h2 class="section-title">The <em>Problem</em></h2>
+      </div>
+      <div class="problem-body rev">
+        <p>Prism had been built by engineers for engineers. Every feature request over four years had been bolted on without a coherent design strategy. The result was a product that could technically do everything — but practically helped no one.</p>
+        <p>Support tickets were dominated by "where is X" and "how do I do Y." Power users had created internal wikis just to explain the interface to new teammates. Churn interviews consistently pointed to the same culprit: the dashboard.</p>
+      </div>
+      <div class="problem-cards">
+        <div class="prob-card rev d1">
+          <div class="prob-card-n">01</div>
+          <div class="prob-card-title">Information Overload</div>
+          <div class="prob-card-body">47 visible controls on the default view. Users reported feeling overwhelmed within 30 seconds of logging in.</div>
+        </div>
+        <div class="prob-card rev d2">
+          <div class="prob-card-n">02</div>
+          <div class="prob-card-title">No Clear Entry Point</div>
+          <div class="prob-card-body">New users had no guided path. The blank state was a blank page with a blinking cursor and zero scaffolding.</div>
+        </div>
+        <div class="prob-card rev d3">
+          <div class="prob-card-n">03</div>
+          <div class="prob-card-title">Inconsistent Patterns</div>
+          <div class="prob-card-body">Similar actions had 4 different interaction patterns across the app. Users could never build reliable mental models.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 USERS & RESEARCH -->
+    <section class="cs-section" id="s3">
+      <div class="section-hd">
+        <span class="section-num-dark">03</span>
+        <h2 class="section-title-dark">Users &amp; <em style="font-style:italic;color:var(--muted)">Research</em></h2>
+      </div>
+      <p class="research-intro rev">We ran a 3-week research sprint before touching a single wireframe. Eighteen interviews, one diary study, and a heuristic audit across every major flow.</p>
+      <div class="persona-grid">
+        <div class="persona-card rev d1">
+          <div class="persona-avatar">A</div>
+          <div class="persona-name">Anya Sharma</div>
+          <div class="persona-role">Senior Data Analyst, 6 years exp.</div>
+          <blockquote class="persona-quote">"I know it can do what I need. I just can't find where to start every single time."</blockquote>
+        </div>
+        <div class="persona-card rev d2">
+          <div class="persona-avatar">M</div>
+          <div class="persona-name">Marcus Chen</div>
+          <div class="persona-role">BI Manager, leads team of 8</div>
+          <blockquote class="persona-quote">"Onboarding a new analyst used to take two weeks. The product just isn't self-explanatory."</blockquote>
+        </div>
+        <div class="persona-card rev d3">
+          <div class="persona-avatar">P</div>
+          <div class="persona-name">Priya Nair</div>
+          <div class="persona-role">Startup Founder, non-technical</div>
+          <blockquote class="persona-quote">"I paid for this to get answers. I'm just getting more questions."</blockquote>
+        </div>
+      </div>
+      <div class="research-methods rev">
+        <div class="method-item">
+          <div class="method-icon">18</div>
+          <div class="method-name">User Interviews</div>
+          <div class="method-n">60 min each</div>
+        </div>
+        <div class="method-item">
+          <div class="method-icon">↳</div>
+          <div class="method-name">Diary Study</div>
+          <div class="method-n">7 days, 12 participants</div>
+        </div>
+        <div class="method-item">
+          <div class="method-icon">∿</div>
+          <div class="method-name">Heuristic Audit</div>
+          <div class="method-n">Nielsen's 10 heuristics</div>
+        </div>
+        <div class="method-item">
+          <div class="method-icon">◈</div>
+          <div class="method-name">Analytics Review</div>
+          <div class="method-n">6 months session data</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 FRUSTRATIONS & FINDINGS -->
+    <section class="cs-section" id="s4">
+      <div class="section-hd">
+        <span class="section-num">04</span>
+        <h2 class="section-title">Frustrations &amp;<br><em>Findings</em></h2>
+      </div>
+      <p class="findings-intro rev">Research surfaced six recurring patterns — each one a compounding failure in the user experience.</p>
+      <div class="findings-list">
+        <div class="finding-row rev">
+          <div class="finding-n">01</div>
+          <div class="finding-body">
+            <div class="finding-title">Cognitive Load at Entry</div>
+            <div class="finding-desc">100% of new users reported feeling confused within 60 seconds. The dashboard loaded in a state optimised for no one.</div>
+          </div>
+          <div class="finding-sev"><span class="sev-dot high"></span><span class="sev-label">Critical</span></div>
+        </div>
+        <div class="finding-row rev d1">
+          <div class="finding-n">02</div>
+          <div class="finding-body">
+            <div class="finding-title">Broken Filter Logic</div>
+            <div class="finding-desc">Filters didn't persist across views. Users re-applied the same filters an average of 7 times per session.</div>
+          </div>
+          <div class="finding-sev"><span class="sev-dot high"></span><span class="sev-label">Critical</span></div>
+        </div>
+        <div class="finding-row rev d2">
+          <div class="finding-n">03</div>
+          <div class="finding-body">
+            <div class="finding-title">No Contextual Help</div>
+            <div class="finding-desc">Zero in-product guidance. Users either figured it out alone, watched YouTube tutorials, or abandoned the task.</div>
+          </div>
+          <div class="finding-sev"><span class="sev-dot med"></span><span class="sev-label">High</span></div>
+        </div>
+        <div class="finding-row rev d3">
+          <div class="finding-n">04</div>
+          <div class="finding-body">
+            <div class="finding-title">Invisible Data Relationships</div>
+            <div class="finding-desc">Charts didn't communicate how data points related. Analysts had to export to Excel just to understand correlations.</div>
+          </div>
+          <div class="finding-sev"><span class="sev-dot med"></span><span class="sev-label">High</span></div>
+        </div>
+        <div class="finding-row rev">
+          <div class="finding-n">05</div>
+          <div class="finding-body">
+            <div class="finding-title">Collaboration is an Afterthought</div>
+            <div class="finding-desc">Sharing a view required copying a URL, pasting it in Slack, and hoping the recipient had the same filter state.</div>
+          </div>
+          <div class="finding-sev"><span class="sev-dot med"></span><span class="sev-label">Medium</span></div>
+        </div>
+        <div class="finding-row rev d1">
+          <div class="finding-n">06</div>
+          <div class="finding-body">
+            <div class="finding-title">Mobile Unusable</div>
+            <div class="finding-desc">22% of users tried to access reports on mobile. None of them succeeded. The layout was a direct desktop port.</div>
+          </div>
+          <div class="finding-sev"><span class="sev-dot low"></span><span class="sev-label">Medium</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 REDESIGN -->
+    <section class="cs-section" id="s5">
+      <div class="section-hd">
+        <span class="section-num-dark">05</span>
+        <h2 class="section-title-dark">Redesign</h2>
+      </div>
+      <p class="redesign-intro rev">The redesign wasn't a facelift — it was a complete rethinking of how users navigate, explore, and act on data. We started from the user's job-to-be-done, not the existing feature set.</p>
+      <div class="redesign-showcase rev">
+        <div class="showcase-item tall">
+          <img class="showcase-img" src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1400&auto=format&fit=crop" alt="New dashboard overview">
+          <div class="showcase-caption">
+            <span class="showcase-cap-label">Before → After</span>
+            <div class="showcase-cap-title">Consolidated dashboard — from 47 controls to 9 primary actions</div>
+          </div>
+        </div>
+        <div class="showcase-pair">
+          <div class="showcase-item half">
+            <img class="showcase-img" src="https://images.unsplash.com/photo-1543286386-713bdd548da4?q=80&w=900&auto=format&fit=crop" alt="Chart explorer">
+            <div class="showcase-caption">
+              <span class="showcase-cap-label">Chart Explorer</span>
+              <div class="showcase-cap-title">Progressive disclosure for complex data</div>
+            </div>
+          </div>
+          <div class="showcase-item half">
+            <img class="showcase-img" src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=900&auto=format&fit=crop" alt="Filter panel">
+            <div class="showcase-caption">
+              <span class="showcase-cap-label">Persistent Filters</span>
+              <div class="showcase-cap-title">Context preserved across all views</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="redesign-principles">
+        <div class="principle-item rev d1">
+          <div class="principle-num">01</div>
+          <div class="principle-body">
+            <div class="principle-title">Progressive Disclosure</div>
+            <div class="principle-desc">Show the 20% of features that cover 80% of use cases. Reveal complexity only when the user signals readiness.</div>
+          </div>
+        </div>
+        <div class="principle-item rev d2">
+          <div class="principle-num">02</div>
+          <div class="principle-body">
+            <div class="principle-title">Persistent Context</div>
+            <div class="principle-desc">Filters, time ranges, and view preferences persist everywhere. Your last state is your next starting point.</div>
+          </div>
+        </div>
+        <div class="principle-item rev d3">
+          <div class="principle-num">03</div>
+          <div class="principle-body">
+            <div class="principle-title">Guided Exploration</div>
+            <div class="principle-desc">Smart defaults and contextual suggestions reduce the blank-slate problem for both new and returning users.</div>
+          </div>
+        </div>
+        <div class="principle-item rev d4">
+          <div class="principle-num">04</div>
+          <div class="principle-body">
+            <div class="principle-title">One-click Sharing</div>
+            <div class="principle-desc">Share any view — with full filter state — in a single click. Recipients land in the exact same context.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 USER TESTING -->
+    <section class="cs-section" id="s6">
+      <div class="section-hd">
+        <span class="section-num">06</span>
+        <h2 class="section-title">User <em>Testing</em></h2>
+      </div>
+      <p class="testing-intro rev">Two rounds of moderated usability testing — 8 participants each — on Figma prototypes at 60% and 95% fidelity. We measured task completion, time-on-task, and SUS scores.</p>
+      <div class="testing-metrics rev d1">
+        <div class="metric-box">
+          <div class="metric-val">67<em>%</em></div>
+          <div class="metric-change">↑ from 31%</div>
+          <div class="metric-label">Task Completion</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-val">54<em>%</em></div>
+          <div class="metric-change">↓ time saved</div>
+          <div class="metric-label">Time to Insight</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-val">4.6</div>
+          <div class="metric-change">↑ from 2.9 / 5</div>
+          <div class="metric-label">SUS Score</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-val">0</div>
+          <div class="metric-change">↓ from 14 avg.</div>
+          <div class="metric-label">Rage Clicks / session</div>
+        </div>
+      </div>
+      <div class="quotes-list">
+        <div class="quote-card rev d2">
+          <p class="quote-text">"I just found what I needed in under a minute. I've never been able to do that before."</p>
+          <div class="quote-meta">
+            <div class="quote-avatar">AS</div>
+            <span class="quote-name">Anya S. — Senior Data Analyst, Round 2 participant</span>
+          </div>
+        </div>
+        <div class="quote-card rev d3">
+          <p class="quote-text">"The sharing alone would save my team hours every week. This changes how we collaborate."</p>
+          <div class="quote-meta">
+            <div class="quote-avatar">MC</div>
+            <span class="quote-name">Marcus C. — BI Manager, Round 2 participant</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 SNIPPETS -->
+    <section class="cs-section" id="s7">
+      <div class="section-hd">
+        <span class="section-num-dark">07</span>
+        <h2 class="section-title-dark">Snippets</h2>
+      </div>
+      
+<!-- Dynamic Gallery (replaces static snippets-grid) -->
+<div class="gallery-wrap rev">
+  <!-- Filter tabs -->
+  <div class="gal-tabs">
+    <button class="gal-tab active" data-filter="all">All</button>
+    <button class="gal-tab" data-filter="research">Research</button>
+    <button class="gal-tab" data-filter="wireframe">Wireframes</button>
+    <button class="gal-tab" data-filter="design">Design</button>
+    <button class="gal-tab" data-filter="testing">Testing</button>
+  </div>
+
+  <!-- Masonry grid -->
+  <div class="gal-grid" id="galGrid">
+    <div class="gal-item" data-cat="research" data-src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1200&auto=format&fit=crop" data-tag="Week 1 · Research" data-title="Stakeholder interviews & kickoff">
+      <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=700&auto=format&fit=crop" alt="Research" loading="lazy">
+      <div class="gal-caption"><span class="gal-cap-tag">Research</span><div class="gal-cap-title">Stakeholder interviews & kickoff</div></div>
+    </div>
+    <div class="gal-item" data-cat="research" data-src="https://images.unsplash.com/photo-1527689368864-3a821dbccc34?q=80&w=1200&auto=format&fit=crop" data-tag="Week 2 · Research" data-title="Affinity mapping & insight clustering">
+      <img src="https://images.unsplash.com/photo-1527689368864-3a821dbccc34?q=80&w=700&auto=format&fit=crop" alt="Affinity map" loading="lazy">
+      <div class="gal-caption"><span class="gal-cap-tag">Research</span><div class="gal-cap-title">Affinity mapping & insight clustering</div></div>
+    </div>
+    <div class="gal-item" data-cat="wireframe" data-src="https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=1200&auto=format&fit=crop" data-tag="Week 3 · Wireframes" data-title="Low-fidelity layout explorations">
+      <img src="https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=700&auto=format&fit=crop" alt="Wireframes" loading="lazy">
+      <div class="gal-caption"><span class="gal-cap-tag">Wireframes</span><div class="gal-cap-title">Low-fidelity layout explorations</div></div>
+    </div>
+    <div class="gal-item" data-cat="wireframe" data-src="https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=1200&auto=format&fit=crop" data-tag="Week 4 · IA" data-title="Information architecture map">
+      <img src="https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=700&auto=format&fit=crop" alt="IA map" loading="lazy">
+      <div class="gal-caption"><span class="gal-cap-tag">IA</span><div class="gal-cap-title">Information architecture map</div></div>
+    </div>
+    <div class="gal-item" data-cat="design" data-src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1200&auto=format&fit=crop" data-tag="Week 7 · Design" data-title="Dashboard redesign — final HiFi">
+      <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=700&auto=format&fit=crop" alt="Dashboard" loading="lazy">
+      <div class="gal-caption"><span class="gal-cap-tag">Design</span><div class="gal-cap-title">Dashboard redesign — final HiFi</div></div>
+    </div>
+    <div class="gal-item" data-cat="design" data-src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=1200&auto=format&fit=crop" data-tag="Week 8 · Design" data-title="Filter panel & persistent state">
+      <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=700&auto=format&fit=crop" alt="Filter panel" loading="lazy">
+      <div class="gal-caption"><span class="gal-cap-tag">Design</span><div class="gal-cap-title">Filter panel & persistent state</div></div>
+    </div>
+    <div class="gal-item" data-cat="design" data-src="https://images.unsplash.com/photo-1543286386-713bdd548da4?q=80&w=1200&auto=format&fit=crop" data-tag="Week 9 · Components" data-title="Component library — 140 atoms">
+      <img src="https://images.unsplash.com/photo-1543286386-713bdd548da4?q=80&w=700&auto=format&fit=crop" alt="Component library" loading="lazy">
+      <div class="gal-caption"><span class="gal-cap-tag">Design System</span><div class="gal-cap-title">Component library — 140 atoms</div></div>
+    </div>
+    <div class="gal-item" data-cat="testing" data-src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1200&auto=format&fit=crop" data-tag="Week 11 · Testing" data-title="Remote usability session — Round 1">
+      <img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=700&auto=format&fit=crop" alt="Usability testing" loading="lazy">
+      <div class="gal-caption"><span class="gal-cap-tag">Testing</span><div class="gal-cap-title">Remote usability session — Round 1</div></div>
+    </div>
+    <div class="gal-item" data-cat="testing" data-src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=1200&auto=format&fit=crop" data-tag="Week 13 · Handoff" data-title="Dev handoff documentation">
+      <img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=700&auto=format&fit=crop" alt="Handoff" loading="lazy">
+      <div class="gal-caption"><span class="gal-cap-tag">Handoff</span><div class="gal-cap-title">Dev handoff documentation</div></div>
+    </div>
+  </div>
+
+  <div class="gal-more">
+    <button class="gal-more-btn" id="galMoreBtn">
+      Show all <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 5v14M5 12l7 7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="gal-lb" id="galLb" role="dialog" aria-modal="true">
+  <button class="gal-lb-close" id="galLbClose" aria-label="Close">&#x2715;</button>
+  <div class="gal-lb-inner">
+    <img class="gal-lb-img" id="galLbImg" src="" alt="">
+    <div class="gal-lb-meta">
+      <span class="gal-lb-tag" id="galLbTag"></span>
+      <div class="gal-lb-title" id="galLbTitle"></div>
+    </div>
+  </div>
+  <button class="gal-lb-prev" id="galLbPrev" aria-label="Previous"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <button class="gal-lb-next" id="galLbNext" aria-label="Next"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <div class="gal-lb-counter" id="galLbCounter"></div>
+</div>
+
+    </section>
+
+    <!-- 08 IMPACT & LEARNINGS -->
+    <section class="cs-section" id="s8">
+      <div class="section-hd">
+        <span class="section-num-dark">08</span>
+        <h2 class="section-title-dark">Impact &amp;<br><em style="font-style:italic;color:var(--muted)">Learnings</em></h2>
+      </div>
+      <div class="impact-grid">
+        <div>
+          <p class="rev" style="font-size:.86rem;font-weight:500;line-height:1.9;color:var(--muted);margin-bottom:0;">The redesign shipped to 100% of users 6 weeks after handoff. Results were measurable within the first billing cycle.</p>
+          <div class="impact-results">
+            <div class="impact-result-row rev d1">
+              <div class="impact-result-icon"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="impact-result-body">
+                <div class="impact-result-title">67% increase in task completion rate</div>
+                <div class="impact-result-desc">Measured via session recording across 2,400 users in the first 30 days post-launch.</div>
+              </div>
+            </div>
+            <div class="impact-result-row rev d2">
+              <div class="impact-result-icon"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="impact-result-body">
+                <div class="impact-result-title">28% reduction in monthly churn</div>
+                <div class="impact-result-desc">Churn interviews now rarely mention the dashboard as a pain point.</div>
+              </div>
+            </div>
+            <div class="impact-result-row rev d3">
+              <div class="impact-result-icon"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="impact-result-body">
+                <div class="impact-result-title">Support tickets down 41%</div>
+                <div class="impact-result-desc">"How do I…" tickets dropped sharply. Contextual help eliminated the most common queries.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="rev d1" style="font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mid);margin-bottom:20px;">Key Learnings</p>
+          <div class="learnings-list">
+            <div class="learning-item rev d1">
+              <div class="learning-num">01</div>
+              <div class="learning-body">
+                <div class="learning-title">Ship research artefacts, not just outputs</div>
+                <div class="learning-desc">Sharing affinity maps and raw quotes with the client team created alignment that a slide deck never could. They started advocating for users internally.</div>
+              </div>
+            </div>
+            <div class="learning-item rev d2">
+              <div class="learning-num">02</div>
+              <div class="learning-body">
+                <div class="learning-title">Test earlier than feels comfortable</div>
+                <div class="learning-desc">Our round 1 prototype was "too rough" to show stakeholders. Participants didn't care — they surfaced critical flaws that would have cost weeks in round 2.</div>
+              </div>
+            </div>
+            <div class="learning-item rev d3">
+              <div class="learning-num">03</div>
+              <div class="learning-body">
+                <div class="learning-title">Defaults are design decisions</div>
+                <div class="learning-desc">The blank state, the default time range, the first chart shown — these are as important as any feature. We spent a week just on defaults. Worth it.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 09 WHAT'S NEXT -->
+    <section class="cs-section" id="s9">
+      <div class="section-hd">
+        <span class="section-num">09</span>
+        <h2 class="section-title">What's <em>Next</em></h2>
+      </div>
+      <p class="next-intro rev">Phase 1 is live. Here's what the roadmap looks like for the next two quarters, based on post-launch feedback and product analytics.</p>
+      <div class="next-roadmap">
+        <div class="next-item rev">
+          <div class="next-n">01</div>
+          <div class="next-body">
+            <div class="next-title">AI-powered insight summaries</div>
+            <div class="next-desc">Automatically surface anomalies and trends, written in plain language. Designed but awaiting ML infrastructure.</div>
+          </div>
+          <span class="next-badge badge-progress">In Progress</span>
+        </div>
+        <div class="next-item rev d1">
+          <div class="next-n">02</div>
+          <div class="next-body">
+            <div class="next-title">Mobile-first reporting view</div>
+            <div class="next-desc">A dedicated mobile experience for executives who need quick read-outs on the go. Currently in wireframe phase.</div>
+          </div>
+          <span class="next-badge badge-progress">In Progress</span>
+        </div>
+        <div class="next-item rev d2">
+          <div class="next-n">03</div>
+          <div class="next-body">
+            <div class="next-title">Collaborative annotations</div>
+            <div class="next-desc">Leave notes and highlights directly on charts, taggable by team member. Scoped and designed, queued for Q3.</div>
+          </div>
+          <span class="next-badge badge-planned">Planned Q3</span>
+        </div>
+        <div class="next-item rev d3">
+          <div class="next-n">04</div>
+          <div class="next-body">
+            <div class="next-title">Custom dashboard builder</div>
+            <div class="next-desc">Drag-and-drop dashboard creation for power users who want to compose their own views from existing chart types.</div>
+          </div>
+          <span class="next-badge badge-planned">Planned Q4</span>
+        </div>
+      </div>
+      <div class="next-cta rev">
+        <div class="next-cta-text">Have a similar<br>challenge? Let's <em>talk.</em></div>
+        <div class="next-cta-btns">
+          <a href="index.html#cta" class="btn-p">Start a Project <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <a href="index.html#work" class="btn-o" href="work.html">See more work</a>
+        </div>
+      </div>
+    </section>
+
+  </main><!-- /post-content -->
+</div><!-- /post-layout -->
+
+<!-- FOOTER -->
+<footer>
+  <div class="ft-g">
+    <div>
+      <a href="index.html" class="ft-logo">DC<em>.</em>ASEL</a>
+      <p class="ft-desc">A boutique design studio crafting remarkable brand identities and digital experiences since 2016.</p>
+      <div class="ft-socs">
+        <a href="#" class="ft-soc" aria-label="LinkedIn">Li</a>
+        <a href="#" class="ft-soc" aria-label="Instagram">Ig</a>
+        <a href="#" class="ft-soc" aria-label="Dribbble">Dr</a>
+        <a href="#" class="ft-soc" aria-label="Behance">Bé</a>
+      </div>
+    </div>
+    <div class="ft-col"><h4>Services</h4><ul>
+      <li><a href="brand-identity.html">Brand Identity</a></li>
+      <li><a href="web-design.html">Web Design</a></li>
+      <li><a href="product-design.html">Product Design</a></li>
+      <li><a href="motion-design.html">Motion Design</a></li>
+      <li><a href="creative-direction.html">Creative Direction</a></li>
+    </ul></div>
+    <div class="ft-col"><h4>Studio</h4><ul>
+      <li><a href="about.html">About</a></li>
+      <li><a href="process.html">Process</a></li>
+      <li><a href="why-dcasel.html">Why Dcasel</a></li>
+      <li><a href="index.html#work">Case Studies</a></li>
+    </ul></div>
+    <div class="ft-col"><h4>Contact</h4><ul>
+      <li><a href="mailto:hello@dcasel.com">hello@dcasel.com</a></li>
+      <li><a href="#">Bengaluru, India</a></li>
+      <li><a href="index.html#cta">Start a Project</a></li>
+    </ul></div>
+  </div>
+  <div class="ft-bot">
+    <span class="ft-copy">© 2025 Dcasel Creative Pvt. Ltd.</span>
+    <span class="ft-made">Crafted with care in <em>Bengaluru</em></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+const $$=(s,el=document)=>[...el.querySelectorAll(s)];
+const isPtr=window.matchMedia('(pointer:fine)').matches;
+
+/* ══════════════════════════════════════════════════════════════
+   CURSOR  ·  Sun (default)  →  Planet on hover
+   Canvas renders:
+     • Moons      — circular bodies orbiting planet
+     • Asteroid belt — rocky debris ring, each rock unique
+     • Shooting stars — streaks on certain planets (Sun/gas giants)
+     • Orbital trail  — faint path ring behind moving bodies
+   All elements orbit in real elliptical perspective paths.
+══════════════════════════════════════════════════════════════ */
+if(isPtr){
+  const wrap   = document.getElementById('cur3');
+  const orb    = document.getElementById('curOrb');
+  const ring   = document.getElementById('curRing');
+  const atmo   = document.getElementById('curAtmo');
+  const cv     = document.getElementById('curCanvas');
+  const ctx    = cv.getContext('2d');
+
+  function resizeCv(){ cv.width=innerWidth; cv.height=innerHeight; }
+  resizeCv();
+  window.addEventListener('resize',resizeCv,{passive:true});
+
+  /* ─────────────────────────────────────────────
+     Helpers
+  ───────────────────────────────────────────── */
+  const PI2 = Math.PI*2;
+  const lerp = (a,b,t) => a+(b-a)*t;
+
+  /* Elliptical orbit position
+     cx,cy = centre   rx = semi-major   tilt = inclination (0=face-on, ~.45=angled)
+     angle = current angle in radians */
+  function orbitPos(cx,cy,rx,tilt,angle){
+    const ry = rx * (0.28 + tilt * 0.35);   // perspective flatten
+    return {
+      x: cx + Math.cos(angle) * rx,
+      y: cy + Math.sin(angle) * ry,
+      // depth scalar  0=back  1=front  → drives size/opacity
+      z: (Math.sin(angle) + 1) * 0.5
+    };
+  }
+
+  /* Draw a small rocky ellipse (asteroid/moon surface roughness) */
+  function drawRock(ctx, x, y, rx, ry, rot, col, alpha){
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x,y);
+    ctx.rotate(rot);
+    ctx.beginPath();
+    // polygon approximation of jagged rock
+    const pts = 7;
+    for(let i=0;i<pts;i++){
+      const a = (i/pts)*PI2;
+      const jitter = 0.72 + Math.random()*0;  // static shape baked at creation
+      const px = Math.cos(a)*rx*jitter;
+      const py = Math.sin(a)*ry*jitter;
+      i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = col;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /* ─────────────────────────────────────────────
+     Body classes
+  ───────────────────────────────────────────── */
+
+  class Moon {
+    constructor(orbitR, speed, size, color, tilt, phaseOffset){
+      this.orbitR  = orbitR;
+      this.speed   = speed;
+      this.size    = size;       // radius at equator
+      this.color   = color;
+      this.tilt    = tilt;       // 0–1, perspective angle
+      this.angle   = phaseOffset;
+      this.trailPts= [];
+    }
+    update(cx,cy){
+      this.angle += this.speed;
+      const p = orbitPos(cx,cy,this.orbitR,this.tilt,this.angle);
+      this.x=p.x; this.y=p.y; this.z=p.z;
+      // trail
+      this.trailPts.push({x:p.x,y:p.y,a:.38*p.z});
+      if(this.trailPts.length>28) this.trailPts.shift();
+    }
+    draw(ctx){
+      // draw trail first (behind)
+      const tr=this.trailPts;
+      for(let i=1;i<tr.length;i++){
+        ctx.save();
+        ctx.globalAlpha = tr[i].a*(i/tr.length)*0.45;
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth   = this.size*0.45*(i/tr.length);
+        ctx.lineCap='round';
+        ctx.beginPath();
+        ctx.moveTo(tr[i-1].x,tr[i-1].y);
+        ctx.lineTo(tr[i].x,  tr[i].y);
+        ctx.stroke();
+        ctx.restore();
+      }
+      // sphere
+      const sz  = this.size*(0.65+this.z*0.35);
+      const grd = ctx.createRadialGradient(
+        this.x-sz*.3, this.y-sz*.3, sz*.05,
+        this.x,       this.y,       sz
+      );
+      grd.addColorStop(0,'rgba(255,255,255,.55)');
+      grd.addColorStop(0.35, this.color);
+      grd.addColorStop(1,   'rgba(0,0,0,.7)');
+      ctx.save();
+      ctx.globalAlpha = 0.72+this.z*0.28;
+      ctx.beginPath();
+      ctx.arc(this.x,this.y,sz,0,PI2);
+      ctx.fillStyle=grd;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  class Asteroid {
+    /* constructor params baked on creation so shape is static */
+    constructor(orbitR, speed, tilt, phaseOffset, col){
+      this.orbitR = orbitR;
+      this.speed  = speed * (Math.random()>.5?1:-1);
+      this.tilt   = tilt;
+      this.angle  = phaseOffset;
+      this.col    = col;
+      // bake a random jagged polygon (7 pts, static)
+      this.pts    = Array.from({length:7},(_,i)=>{
+        const a = (i/7)*PI2;
+        const r = 0.62+Math.random()*0.38;
+        return [Math.cos(a)*r, Math.sin(a)*r];
+      });
+      this.rx = 1.0 + Math.random()*1.2;  // rock x-radius
+      this.ry = this.rx*(0.55+Math.random()*.3);
+      this.rot= Math.random()*PI2;
+    }
+    update(cx,cy){
+      this.angle += this.speed;
+      const p = orbitPos(cx,cy,this.orbitR,this.tilt,this.angle);
+      this.x=p.x; this.y=p.y; this.z=p.z;
+    }
+    draw(ctx){
+      const scale = 0.55+this.z*0.45;
+      ctx.save();
+      ctx.globalAlpha = (0.38+this.z*0.42);
+      ctx.translate(this.x,this.y);
+      ctx.rotate(this.rot + this.angle*0.3);
+      ctx.beginPath();
+      const rx=this.rx*scale, ry=this.ry*scale;
+      this.pts.forEach(([px,py],i)=>{
+        const x=px*rx, y=py*ry;
+        i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      });
+      ctx.closePath();
+      ctx.fillStyle=this.col;
+      // tiny highlight
+      const g=ctx.createRadialGradient(-rx*.3,-ry*.3,0,0,0,rx);
+      g.addColorStop(0,'rgba(255,255,255,.35)');
+      g.addColorStop(1,this.col);
+      ctx.fillStyle=g;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  class ShootingStar {
+    constructor(cx,cy,range,col){
+      this.reset(cx,cy,range,col);
+      this.alpha=0; // start invisible so first frame doesn't flash
+    }
+    reset(cx,cy,range,col){
+      const angle = Math.random()*PI2;
+      const dist  = range*1.4 + Math.random()*range*.8;
+      this.x  = cx+Math.cos(angle)*dist;
+      this.y  = cy+Math.sin(angle)*dist;
+      // direction — sweeps across, vaguely tangential
+      const dir = angle + Math.PI*0.5 + (Math.random()-.5)*0.9;
+      const spd = 2.8+Math.random()*3.2;
+      this.vx = Math.cos(dir)*spd;
+      this.vy = Math.sin(dir)*spd;
+      this.len= 18+Math.random()*28;
+      this.col= col;
+      this.alpha=0.9+Math.random()*.1;
+      this.decay=0.025+Math.random()*0.035;
+      this.cx=cx; this.cy=cy; this.range=range;
+    }
+    update(cx,cy,range,col){
+      this.cx=cx; this.cy=cy;
+      this.x+=this.vx; this.y+=this.vy;
+      this.alpha-=this.decay;
+      if(this.alpha<=0) this.reset(cx,cy,range,col);
+    }
+    draw(ctx){
+      ctx.save();
+      ctx.globalAlpha=Math.max(0,this.alpha);
+      const g=ctx.createLinearGradient(
+        this.x,this.y,
+        this.x-this.vx/Math.hypot(this.vx,this.vy)*this.len,
+        this.y-this.vy/Math.hypot(this.vx,this.vy)*this.len
+      );
+      g.addColorStop(0,this.col);
+      g.addColorStop(1,'transparent');
+      ctx.strokeStyle=g;
+      ctx.lineWidth=1.1;
+      ctx.lineCap='round';
+      ctx.beginPath();
+      ctx.moveTo(this.x,this.y);
+      ctx.lineTo(
+        this.x-this.vx/Math.hypot(this.vx,this.vy)*this.len,
+        this.y-this.vy/Math.hypot(this.vx,this.vy)*this.len
+      );
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     Planet + Sun data
+     satellites: array of { type, ...params }
+  ───────────────────────────────────────────── */
+  const SUN_DEF = {
+    size:20,
+    bg:`radial-gradient(circle at 34% 26%,rgba(255,255,255,.95) 0%,rgba(255,225,100,.9) 12%,#f05818 40%,#c03000 66%,#7a1600 100%)`,
+    shadow:`0 0 0 1.5px rgba(212,76,39,.4),0 0 10px 3px rgba(212,76,39,.5),0 0 22px 6px rgba(212,76,39,.18)`,
+    atmoColor:'rgba(255,100,20,.28)',
+    isSun:true,
+    satellites:[
+      // corona shooting streaks
+      {type:'star', count:3, range:44, col:'rgba(255,180,60,.75)'},
+    ]
+  };
+
+  const PLANETS = [
+    { name:'Mercury',
+      size:16,
+      bg:`radial-gradient(ellipse 55% 40% at 30% 27%,rgba(255,255,255,.11) 0%,transparent 70%),
+          radial-gradient(circle at 35% 29%,#d8d2c8 0%,#8a8078 48%,#46403a 100%)`,
+      shadow:`0 0 0 1.5px rgba(140,132,122,.5),0 0 10px 3px rgba(120,112,102,.28)`,
+      atmoColor:'rgba(180,170,158,.18)',
+      satellites:[
+        // No moons — asteroid cluster from sun proximity
+        {type:'asteroids', count:9, orbitR:26, spread:5, speed:.028, tilt:.42, col:'#9a9088'},
+      ]
+    },
+    { name:'Venus',
+      size:21,
+      bg:`repeating-linear-gradient(173deg,rgba(255,218,82,.18) 0px,rgba(255,218,82,.0) 3px,rgba(195,132,12,.14) 4px,rgba(195,132,12,.0) 8px),
+          radial-gradient(circle at 36% 27%,#fff8c0 0%,#e2ac22 40%,#906000 100%)`,
+      shadow:`0 0 0 1.5px rgba(210,160,22,.5),0 0 12px 4px rgba(210,160,22,.35)`,
+      atmoColor:'rgba(240,200,40,.3)',
+      satellites:[
+        // Venus is moonless — dust ring + shooting streaks
+        {type:'asteroids', count:12, orbitR:30, spread:4, speed:.022, tilt:.38, col:'#c8a020'},
+        {type:'star', count:2, range:48, col:'rgba(255,230,100,.7)'},
+      ]
+    },
+    { name:'Earth',
+      size:21,
+      bg:`radial-gradient(ellipse 42% 52% at 63% 44%,rgba(32,152,52,.62) 0%,transparent 100%),
+          radial-gradient(ellipse 26% 22% at 24% 64%,rgba(32,152,52,.46) 0%,transparent 100%),
+          radial-gradient(circle at 35% 26%,#c0ecff 0%,#1880d8 38%,#0a3a7c 100%)`,
+      shadow:`0 0 0 1.5px rgba(28,108,210,.55),0 0 12px 4px rgba(28,108,210,.38)`,
+      atmoColor:'rgba(80,160,255,.25)',
+      satellites:[
+        // The Moon
+        {type:'moon', orbitR:30, speed:.034, size:4.5, color:'#d8d4cc', tilt:.38, phase:0},
+        // ISS-like tiny dot
+        {type:'moon', orbitR:24, speed:.072, size:1.8, color:'#e0e8f0', tilt:.55, phase:2.1},
+      ]
+    },
+    { name:'Mars',
+      size:19,
+      bg:`radial-gradient(ellipse 36% 16% at 50% 6%,rgba(255,255,255,.65) 0%,transparent 100%),
+          radial-gradient(circle at 36% 27%,#faa882 0%,#d44c27 40%,#7c2210 100%)`,
+      shadow:`0 0 0 1.5px rgba(212,76,39,.6),0 0 12px 4px rgba(212,76,39,.45)`,
+      atmoColor:'rgba(210,80,30,.28)',
+      satellites:[
+        // Phobos
+        {type:'moon', orbitR:26, speed:.058, size:3.2, color:'#b8a898', tilt:.3, phase:0},
+        // Deimos
+        {type:'moon', orbitR:34, speed:.031, size:2.2, color:'#a89888', tilt:.48, phase:1.6},
+        // Dust
+        {type:'asteroids', count:7, orbitR:42, spread:4, speed:.018, tilt:.44, col:'#c07050'},
+      ]
+    },
+    { name:'Jupiter',
+      size:26,
+      bg:`repeating-linear-gradient(178deg,rgba(212,115,52,.26) 0px,rgba(212,115,52,.0) 2px,rgba(248,208,148,.22) 3px,rgba(248,208,148,.0) 5px,rgba(188,88,36,.22) 6px,rgba(188,88,36,.0) 8px,rgba(248,208,148,.18) 9px,rgba(248,208,148,.0) 11px),
+          radial-gradient(circle at 36% 27%,#fce4b0 0%,#d08040 38%,#804010 100%)`,
+      grs:true,
+      shadow:`0 0 0 1.5px rgba(195,115,42,.5),0 0 14px 5px rgba(195,115,42,.32)`,
+      atmoColor:'rgba(200,130,50,.22)',
+      satellites:[
+        // Io
+        {type:'moon', orbitR:34, speed:.052, size:4.8, color:'#e8c840', tilt:.28, phase:0},
+        // Europa
+        {type:'moon', orbitR:43, speed:.038, size:4.0, color:'#d0c8c0', tilt:.35, phase:2.4},
+        // Ganymede
+        {type:'moon', orbitR:54, speed:.026, size:5.2, color:'#a8a098', tilt:.32, phase:4.8},
+        // Asteroid ring
+        {type:'asteroids', count:14, orbitR:64, spread:5, speed:.014, tilt:.38, col:'#c09060'},
+        // Shooting streaks
+        {type:'star', count:3, range:72, col:'rgba(255,200,120,.65)'},
+      ]
+    },
+    { name:'Saturn',
+      size:22,
+      bg:`repeating-linear-gradient(175deg,rgba(255,208,88,.22) 0px,rgba(255,208,88,.0) 2px,rgba(178,112,14,.2) 3px,rgba(178,112,14,.0) 6px,rgba(255,208,88,.16) 7px,rgba(255,208,88,.0) 10px),
+          radial-gradient(circle at 35% 28%,#feeaa0 0%,#d09818 40%,#7c5008 100%)`,
+      hasRing:true,
+      shadow:`0 0 0 1.5px rgba(205,158,22,.5),0 0 14px 5px rgba(205,158,22,.32)`,
+      atmoColor:'rgba(220,175,30,.22)',
+      satellites:[
+        // Titan
+        {type:'moon', orbitR:38, speed:.028, size:5.5, color:'#d4a840', tilt:.42, phase:0},
+        // Enceladus
+        {type:'moon', orbitR:48, speed:.022, size:3.2, color:'#e8f0f8', tilt:.38, phase:1.8},
+        // Mimas
+        {type:'moon', orbitR:30, speed:.042, size:2.8, color:'#c8c4bc', tilt:.32, phase:3.5},
+        // Dense asteroid ring (matches visual ring)
+        {type:'asteroids', count:22, orbitR:34, spread:7, speed:.016, tilt:.42, col:'#c8a840'},
+        {type:'asteroids', count:18, orbitR:44, spread:5, speed:.012, tilt:.44, col:'#b89030'},
+        // Shooting streaks
+        {type:'star', count:2, range:66, col:'rgba(255,235,140,.6)'},
+      ]
+    },
+    { name:'Neptune',
+      size:21,
+      bg:`repeating-linear-gradient(161deg,rgba(148,208,255,.16) 0px,rgba(148,208,255,.0) 4px,rgba(76,122,228,.14) 5px,rgba(76,122,228,.0) 9px),
+          radial-gradient(circle at 34% 27%,#c4e4ff 0%,#2c5ce0 38%,#0a1a8c 100%)`,
+      shadow:`0 0 0 1.5px rgba(52,96,215,.55),0 0 13px 5px rgba(52,96,215,.38)`,
+      atmoColor:'rgba(80,130,255,.28)',
+      satellites:[
+        // Triton (retrograde — negative speed)
+        {type:'moon', orbitR:32, speed:-.038, size:4.2, color:'#c8ddf0', tilt:.44, phase:0},
+        // Nereid
+        {type:'moon', orbitR:50, speed:.018, size:2.5, color:'#a0b8d0', tilt:.36, phase:2.8},
+        // Thin arc ring
+        {type:'asteroids', count:10, orbitR:28, spread:3, speed:.025, tilt:.40, col:'#607898'},
+        // Many shooting stars (distant ice field)
+        {type:'star', count:4, range:62, col:'rgba(180,220,255,.7)'},
+      ]
+    },
+  ];
+
+  /* ─────────────────────────────────────────────
+     Runtime state
+  ───────────────────────────────────────────── */
+  let activeSatellites = [];   // Moon | Asteroid[] | ShootingStar[]
+  let activeStars      = [];
+  let isHovering       = false;
+  let curPlanet        = null;
+  let lastIdx          = -1;
+  let grsEl            = null;
+
+  /* Build satellite objects from planet data */
+  function buildSatellites(def, cx, cy){
+    activeSatellites = [];
+    activeStars      = [];
+    if(!def.satellites) return;
+    def.satellites.forEach(s=>{
+      if(s.type==='moon'){
+        activeSatellites.push(new Moon(s.orbitR, s.speed, s.size, s.color, s.tilt, s.phase));
+      }
+      else if(s.type==='asteroids'){
+        // spread asteroids across a belt range
+        for(let i=0;i<s.count;i++){
+          const r   = s.orbitR + (Math.random()-.5)*s.spread*2;
+          const spd = s.speed*(0.7+Math.random()*.6)*(Math.random()>.5?1:-1);
+          const ph  = Math.random()*PI2;
+          activeSatellites.push(new Asteroid(r, spd, s.tilt+(Math.random()-.5)*.12, ph, s.col));
+        }
+      }
+      else if(s.type==='star'){
+        for(let i=0;i<s.count;i++){
+          const st = new ShootingStar(cx,cy,s.range,s.col);
+          // stagger initial alpha so they don't all die together
+          st.alpha = Math.random();
+          activeStars.push(st);
+        }
+      }
+    });
+  }
+
+  /* ─────────────────────────────────────────────
+     Render loop
+  ───────────────────────────────────────────── */
+  let mx=0,my=0, cx=0,cy=0;
+  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+
+  // Sort by z so back objects draw first (painter's algorithm)
+  function sortByZ(a,b){ return (a.z||0)-(b.z||0); }
+
+  function loop(){
+    cx += (mx-cx)*.2;
+    cy += (my-cy)*.2;
+    wrap.style.left = cx+'px';
+    wrap.style.top  = cy+'px';
+
+    ctx.clearRect(0,0,cv.width,cv.height);
+
+    if(isHovering){
+      /* update */
+      activeSatellites.forEach(s=>s.update(cx,cy));
+      activeStars.forEach(s=>s.update(cx,cy, curPlanet?.satellites?.find(x=>x.type==='star')?.range||50,
+                                              curPlanet?.satellites?.find(x=>x.type==='star')?.col||'white'));
+
+      /* sort moons+asteroids by depth */
+      const sorted = [...activeSatellites].sort(sortByZ);
+
+      /* draw back-hemisphere objects (z < 0.5) */
+      sorted.filter(s=>s.z<0.5).forEach(s=>s.draw(ctx));
+
+      /* draw planet orb glow halo at planet centre */
+      const haloR = (curPlanet?.size||20)*1.8;
+      const hg = ctx.createRadialGradient(cx,cy,0,cx,cy,haloR);
+      hg.addColorStop(0,'transparent');
+      hg.addColorStop(0.6,'transparent');
+      hg.addColorStop(1,curPlanet?.atmoColor||'rgba(100,100,200,.15)');
+      ctx.save(); ctx.globalAlpha=.55;
+      ctx.beginPath(); ctx.arc(cx,cy,haloR,0,PI2);
+      ctx.fillStyle=hg; ctx.fill();
+      ctx.restore();
+
+      /* draw front-hemisphere objects (z >= 0.5) */
+      sorted.filter(s=>s.z>=0.5).forEach(s=>s.draw(ctx));
+
+      /* shooting stars always on top */
+      activeStars.forEach(s=>s.draw(ctx));
+    }
+
+    requestAnimationFrame(loop);
+  }
+  loop();
+
+  /* ─────────────────────────────────────────────
+     Show / hide
+  ───────────────────────────────────────────── */
+  function showSun(){
+    isHovering=false;
+    activeSatellites=[]; activeStars=[];
+    wrap.classList.remove('hov','has-ring','has-atmo');
+    orb.classList.remove('is-sun');
+    ring.style.opacity='0';
+    atmo.style.opacity='0';
+    if(grsEl){grsEl.remove();grsEl=null;}
+
+    orb.style.width  = SUN_DEF.size+'px';
+    orb.style.height = SUN_DEF.size+'px';
+    orb.style.background = SUN_DEF.bg;
+    orb.style.boxShadow  = SUN_DEF.shadow;
+    const ao = SUN_DEF.size+10;
+    atmo.style.width    = ao+'px';
+    atmo.style.height   = ao+'px';
+    atmo.style.background=`radial-gradient(circle,${SUN_DEF.atmoColor} 0%,transparent 70%)`;
+    requestAnimationFrame(()=>{
+      wrap.classList.add('is-sun','has-atmo');
+      orb.classList.add('is-sun');
+      atmo.style.opacity='1';
+    });
+  }
+
+  function showPlanet(p){
+    wrap.classList.remove('is-sun','has-ring','has-atmo');
+    orb.classList.remove('is-sun');
+    if(grsEl){grsEl.remove();grsEl=null;}
+
+    orb.style.width  = p.size+'px';
+    orb.style.height = p.size+'px';
+    orb.style.background = p.bg;
+    orb.style.boxShadow  = p.shadow;
+
+    const ao = p.size+14;
+    atmo.style.width    = ao+'px';
+    atmo.style.height   = ao+'px';
+    atmo.style.background=`radial-gradient(circle,${p.atmoColor} 0%,transparent 68%)`;
+
+    if(p.hasRing){
+      const rw=p.size*2.1, rh=p.size*.55;
+      ring.style.width  = rw+'px';
+      ring.style.height = rh+'px';
+      ring.style.background=
+        `radial-gradient(ellipse 100% 100% at 50% 50%,transparent 28%,rgba(218,173,45,.55) 36%,rgba(248,213,82,.26) 50%,rgba(218,173,45,.46) 61%,transparent 70%)`;
+      ring.style.boxShadow='0 0 5px 1px rgba(218,173,45,.22)';
+    }
+
+    if(p.grs){
+      grsEl=document.createElement('div');
+      grsEl.style.cssText='position:absolute;width:26%;height:18%;background:rgba(172,36,10,.62);border-radius:50%;top:55%;left:56%;transform:translate(-50%,-50%);filter:blur(.7px);pointer-events:none;z-index:2;';
+      orb.appendChild(grsEl);
+    }
+
+    requestAnimationFrame(()=>{
+      wrap.classList.add('hov','has-atmo');
+      if(p.hasRing) wrap.classList.add('has-ring');
+      atmo.style.opacity='1';
+    });
+
+    /* spawn satellites AFTER applying planet so cx/cy are stable */
+    curPlanet = p;
+    buildSatellites(p, cx, cy);
+    isHovering = true;
+  }
+
+  function pickPlanet(){
+    let i;
+    do{i=Math.floor(Math.random()*PLANETS.length);}while(i===lastIdx);
+    lastIdx=i; return PLANETS[i];
+  }
+
+  showSun();
+
+  $$('a,button').forEach(el=>{
+    el.addEventListener('mouseenter',()=>showPlanet(pickPlanet()));
+    el.addEventListener('mouseleave',()=>showSun());
+  });
+}
+/* Progress bar */
+const prog=document.getElementById('prog');
+window.addEventListener('scroll',()=>{
+  prog.style.transform=`scaleX(${window.scrollY/(document.body.scrollHeight-window.innerHeight)||0})`;
+},{passive:true});
+
+/* Nav stuck */
+const navEl=document.getElementById('nav');
+window.addEventListener('scroll',()=>navEl.classList.toggle('stuck',window.scrollY>30),{passive:true});
+
+/* Hamburger */
+const hamBtn=document.getElementById('hamBtn');
+const mob=document.getElementById('mobMenu');
+hamBtn.addEventListener('click',()=>{const o=mob.classList.toggle('open');hamBtn.classList.toggle('open',o);document.body.style.overflow=o?'hidden':'';});
+$$('.mm').forEach(a=>a.addEventListener('click',()=>{mob.classList.remove('open');hamBtn.classList.remove('open');document.body.style.overflow='';}));
+
+/* Hero image load animation */
+setTimeout(()=>{document.getElementById('heroImg')?.classList.add('loaded');},100);
+
+/* Scroll reveal */
+const ro=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');ro.unobserve(e.target);}});},{threshold:.06,rootMargin:'0px 0px -32px 0px'});
+$$('.rev').forEach(el=>ro.observe(el));
+
+/* TOC active state — IntersectionObserver on each section */
+const tocItems=[...document.querySelectorAll('.toc-nav-item')];
+const sections=tocItems.map(i=>document.getElementById(i.dataset.sec)).filter(Boolean);
+
+// Track which section is most visible
+const visMap=new Map();
+const secObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{visMap.set(e.target.id,e.intersectionRatio);});
+  // find section with highest ratio
+  let best=null,bestRatio=-1;
+  visMap.forEach((ratio,id)=>{if(ratio>bestRatio){bestRatio=ratio;best=id;}});
+  if(best){
+    tocItems.forEach(i=>{i.classList.toggle('active',i.dataset.sec===best);});
+  }
+},{threshold:[0,0.1,0.25,0.5,0.75,1],rootMargin:'-10% 0px -30% 0px'});
+sections.forEach(s=>{visMap.set(s.id,0);secObs.observe(s);});
+
+/* TOC click — smooth scroll */
+tocItems.forEach(item=>{
+  item.addEventListener('click',e=>{
+    e.preventDefault();
+    const sec=document.getElementById(item.dataset.sec);
+    if(sec){
+      const top=sec.getBoundingClientRect().top+window.scrollY-parseInt(getComputedStyle(document.documentElement).getPropertyValue('--nav-h'))-8;
+      window.scrollTo({top,behavior:'smooth'});
+    }
+  });
+});
+
+})();
+
+/* ── Dynamic Gallery ── */
+(function(){
+  const grid    = document.getElementById('galGrid');
+  if(!grid) return;
+  const tabs    = document.querySelectorAll('.gal-tab');
+  const moreBtn = document.getElementById('galMoreBtn');
+  const lb      = document.getElementById('galLb');
+  const lbImg   = document.getElementById('galLbImg');
+  const lbTag   = document.getElementById('galLbTag');
+  const lbTitle = document.getElementById('galLbTitle');
+  const lbClose = document.getElementById('galLbClose');
+  const lbPrev  = document.getElementById('galLbPrev');
+  const lbNext  = document.getElementById('galLbNext');
+  const lbCntr  = document.getElementById('galLbCounter');
+
+  let items = [...grid.querySelectorAll('.gal-item')];
+  let visibleItems = [...items];
+  let currentLbIdx = 0;
+  let showingAll = false;
+  const INITIAL_SHOW = 6;
+
+  // Initial state: hide items beyond INITIAL_SHOW
+  function applyVisibility(){
+    visibleItems.forEach((el,i)=>{
+      el.style.display = (showingAll || i < INITIAL_SHOW) ? 'block' : 'none';
+    });
+    if(moreBtn){
+      const hidden = visibleItems.filter((_,i)=>!showingAll && i>=INITIAL_SHOW).length;
+      moreBtn.style.display = hidden > 0 ? 'flex' : 'none';
+      moreBtn.innerHTML = `Show ${hidden} more <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 5v14M5 12l7 7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    }
+  }
+
+  // Filter
+  tabs.forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      tabs.forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      const f = tab.dataset.filter;
+      items.forEach(el=>{
+        el.classList.toggle('hidden', f!=='all' && el.dataset.cat !== f);
+      });
+      visibleItems = items.filter(el=>!el.classList.contains('hidden'));
+      showingAll = false;
+      applyVisibility();
+    });
+  });
+
+  if(moreBtn){
+    moreBtn.addEventListener('click',()=>{
+      showingAll = true;
+      applyVisibility();
+    });
+  }
+
+  // Open lightbox
+  function openLb(idx){
+    currentLbIdx = idx;
+    const el = visibleItems.filter((_,i)=>showingAll||i<INITIAL_SHOW)[currentLbIdx] || visibleItems[currentLbIdx];
+    const visible = showingAll ? visibleItems : visibleItems.slice(0,INITIAL_SHOW);
+    const item = visible[currentLbIdx];
+    if(!item) return;
+    lbImg.src     = item.dataset.src;
+    lbTag.textContent   = item.dataset.tag||'';
+    lbTitle.textContent = item.dataset.title||'';
+    lbCntr.textContent  = `${currentLbIdx+1} / ${visible.length}`;
+    lb.classList.add('open');
+    document.body.style.overflow='hidden';
+  }
+  function closeLb(){
+    lb.classList.remove('open');
+    document.body.style.overflow='';
+    setTimeout(()=>{lbImg.src='';},350);
+  }
+  function navLb(dir){
+    const visible = showingAll ? visibleItems : visibleItems.slice(0,INITIAL_SHOW);
+    currentLbIdx = (currentLbIdx + dir + visible.length) % visible.length;
+    const item = visible[currentLbIdx];
+    lbImg.style.opacity='0';
+    setTimeout(()=>{
+      lbImg.src=item.dataset.src;
+      lbTag.textContent=item.dataset.tag||'';
+      lbTitle.textContent=item.dataset.title||'';
+      lbCntr.textContent=`${currentLbIdx+1} / ${visible.length}`;
+      lbImg.style.opacity='1';
+    },180);
+  }
+
+  items.forEach((el,i)=>{
+    el.addEventListener('click',()=>{
+      const visible = showingAll ? visibleItems : visibleItems.slice(0,INITIAL_SHOW);
+      const idx = visible.indexOf(el);
+      if(idx>=0) openLb(idx);
+    });
+  });
+  if(lbClose) lbClose.addEventListener('click',closeLb);
+  if(lbPrev)  lbPrev.addEventListener('click',()=>navLb(-1));
+  if(lbNext)  lbNext.addEventListener('click',()=>navLb(1));
+  lb.addEventListener('click',e=>{ if(e.target===lb) closeLb(); });
+  document.addEventListener('keydown',e=>{
+    if(!lb.classList.contains('open')) return;
+    if(e.key==='Escape') closeLb();
+    if(e.key==='ArrowLeft') navLb(-1);
+    if(e.key==='ArrowRight') navLb(1);
+  });
+
+  applyVisibility();
+})();
+
+
+/* ── Submenu: ensure click works (pointer-events fix) ── */
+(function(){
+  document.querySelectorAll('.nav-item').forEach(item=>{
+    const drop = item.querySelector('.nav-drop');
+    if(!drop) return;
+    // Keep dropdown open while moving between link and dropdown
+    let leaveTimer;
+    item.addEventListener('mouseenter',()=>clearTimeout(leaveTimer));
+    item.addEventListener('mouseleave',()=>{
+      leaveTimer = setTimeout(()=>{
+        drop.style.pointerEvents='none';
+        drop.style.opacity='0';
+        drop.style.transform='translateX(-50%) translateY(-8px)';
+      }, 120);
+    });
+    drop.addEventListener('mouseenter',()=>{
+      clearTimeout(leaveTimer);
+      drop.style.pointerEvents='auto';
+      drop.style.opacity='1';
+      drop.style.transform='translateX(-50%) translateY(0)';
+    });
+    drop.addEventListener('mouseleave',()=>{
+      leaveTimer = setTimeout(()=>{
+        drop.style.pointerEvents='none';
+        drop.style.opacity='0';
+        drop.style.transform='translateX(-50%) translateY(-8px)';
+      }, 80);
+    });
+    // click on the parent link area — toggle for touch
+    const link = item.querySelector('.nav-link');
+    if(link){
+      link.addEventListener('click',e=>{
+        // if has dropdown and click is on the link (not on an anchor inside drop)
+        // do nothing — let default navigate. But prevent default only if href="#"
+        if(link.getAttribute('href')==='#' || !link.getAttribute('href')){
+          e.preventDefault();
+        }
+      });
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

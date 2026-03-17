@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Our Process — Dcasel Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Syne:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+@media(pointer:fine){*{cursor:none;}}
+:root{--bone:#f4f1ec;--off:#eae6de;--parchm:#d9d4c9;--mid:#a09b90;--muted:#6e6860;--ink:#0e0d0b;--dark:#141210;--charcoal:#1c1a17;--ember:#d44c27;--ease:cubic-bezier(0.22,1,0.36,1);--spring:cubic-bezier(0.34,1.56,0.64,1);--px:20px;--sy:80px;}
+@media(min-width:480px){:root{--px:28px;}}
+@media(min-width:768px){:root{--px:44px;--sy:110px;}}
+@media(min-width:1024px){:root{--px:64px;--sy:140px;}}
+@media(min-width:1280px){:root{--px:80px;--sy:160px;}}
+body{font-family:'Syne',sans-serif;background:var(--bone);color:var(--ink);overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+img{display:block;max-width:100%;height:auto;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+#cur3,#curTrail{display:none;position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
+@media(pointer:fine){#cur3{display:block;width:26px;height:26px;}#curTrail{display:block;width:48px;height:48px;border-radius:50%;border:1.5px solid rgba(14,13,11,.18);z-index:9998;}}
+.c3s{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.95) 0%,rgba(255,255,255,.4) 22%,var(--ink) 55%,rgba(0,0,0,.88) 100%);box-shadow:inset -3px -3px 8px rgba(0,0,0,.5),0 4px 16px rgba(14,13,11,.3);position:relative;transition:width .32s,height .32s;}
+.c3s::before{content:'';position:absolute;top:21%;left:24%;width:32%;height:22%;background:rgba(255,255,255,.55);border-radius:50%;transform:rotate(-35deg);filter:blur(2px);}
+#cur3.hov .c3s{width:52px;height:52px;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.9) 0%,rgba(255,255,255,.35) 22%,var(--ember) 55%,rgba(100,20,0,.88) 100%);}
+#prog{position:fixed;top:0;left:0;height:1px;width:100%;background:var(--ember);z-index:9999;transform:scaleX(0);transform-origin:left;}
+.noise{position:fixed;inset:0;pointer-events:none;z-index:8000;opacity:.022;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+nav{position:fixed;inset:0 0 auto;z-index:500;height:60px;padding:0 var(--px);display:flex;align-items:center;justify-content:space-between;transition:background .45s;}
+@media(min-width:768px){nav{height:68px;}}
+nav.stuck{background:rgba(244,241,236,.93);backdrop-filter:blur(20px) saturate(160%);border-bottom:1px solid rgba(14,13,11,.07);}
+.logo{font-family:'Cormorant Garamond',serif;font-size:1.45rem;font-weight:500;letter-spacing:.06em;color:var(--ink);}
+.logo em{font-style:normal;color:var(--ember);}
+.nav-links{display:none;align-items:center;gap:36px;}
+@media(min-width:900px){.nav-links{display:flex;}}
+.nav-item{position:relative;}
+.nav-link{font-size:.65rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);transition:color .2s;display:flex;align-items:center;gap:5px;}
+.nav-link:hover,.nav-link.active{color:var(--ink);}
+.nav-chevron{width:8px;height:8px;flex-shrink:0;transition:transform .25s;}
+.nav-item:hover .nav-chevron{transform:rotate(180deg);}
+.nav-drop{position:absolute;top:calc(100% + 18px);left:50%;transform:translateX(-50%) translateY(-8px);background:var(--bone);border:1px solid rgba(14,13,11,.08);border-radius:4px;padding:8px;min-width:180px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:0 16px 48px rgba(14,13,11,.1);}
+.nav-item:hover .nav-drop{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+.nav-drop a{display:block;font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:.6rem .85rem;border-radius:2px;transition:color .18s,background .18s;white-space:nowrap;}
+.nav-drop a:hover{color:var(--ink);background:var(--off);}
+.nav-drop a.active{color:var(--ember)!important;}
+.drop-div{height:1px;background:rgba(14,13,11,.07);margin:4px 8px;}
+.nav-cta{display:none;font-size:.64rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:.42rem 1.15rem;border-radius:100px;border:1px solid rgba(14,13,11,.2);transition:background .22s,color .22s;}
+.nav-cta:hover{background:var(--ink);color:var(--bone);}
+@media(min-width:900px){.nav-cta{display:block;}}
+.ham{display:flex;flex-direction:column;justify-content:center;gap:5px;background:none;border:none;padding:8px;margin-right:-8px;width:40px;height:40px;}
+.ham span{display:block;width:22px;height:1.5px;background:var(--ink);border-radius:1px;transition:transform .32s,opacity .22s;}
+.ham.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg);}
+.ham.open span:nth-child(2){opacity:0;}
+.ham.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg);}
+@media(min-width:900px){.ham{display:none;}}
+.mob{position:fixed;inset:0;z-index:490;background:var(--ink);display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;padding:0 var(--px) clamp(40px,8vw,64px);transform:translateY(-100%);transition:transform .65s var(--ease);pointer-events:none;}
+.mob.open{transform:translateY(0);pointer-events:auto;}
+.mob-links{display:flex;flex-direction:column;gap:0;margin-bottom:40px;width:100%;}
+.mob-links a{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,8.5vw,3.2rem);font-weight:300;font-style:italic;color:var(--bone);padding:11px 0;border-bottom:1px solid rgba(244,241,236,.07);opacity:0;transform:translateX(-18px);transition:opacity .48s var(--ease),transform .48s var(--ease);}
+.mob.open .mob-links a{opacity:1;transform:translateX(0);}
+.mob.open .mob-links a:nth-child(1){transition-delay:.07s;}
+.mob.open .mob-links a:nth-child(2){transition-delay:.13s;}
+.mob.open .mob-links a:nth-child(3){transition-delay:.19s;}
+.mob.open .mob-links a:nth-child(4){transition-delay:.25s;}
+.mob-links a:hover{color:var(--ember);}
+.mob-btn{display:flex;align-items:center;justify-content:center;width:100%;padding:.95rem;background:var(--ember);border-radius:100px;color:var(--bone);font-size:.76rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:0;transform:translateY(10px);transition:opacity .38s .36s,transform .38s .36s;}
+.mob.open .mob-btn{opacity:1;transform:translateY(0);}
+.rev{opacity:0;transform:translateY(24px);transition:opacity .85s var(--ease),transform .85s var(--ease);}
+.rev.vis{opacity:1;transform:none;}
+.d1{transition-delay:.1s;}.d2{transition-delay:.2s;}.d3{transition-delay:.3s;}.d4{transition-delay:.4s;}.d5{transition-delay:.5s;}
+.sec-tag{font-size:.58rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:10px;}
+.sec-tag::before{content:'';width:18px;height:1px;background:var(--parchm);flex-shrink:0;}
+.btn-p{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--bone);background:var(--ink);padding:.78rem 1.5rem;border-radius:100px;border:none;transition:transform .28s,box-shadow .28s;}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(14,13,11,.18);}
+.btn-p svg{width:11px;height:11px;stroke:var(--bone);fill:none;flex-shrink:0;}
+.btn-o{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);padding:.78rem 1.5rem;border-radius:100px;border:1px solid rgba(14,13,11,.18);transition:background .22s;}
+.btn-o:hover{background:var(--off);}
+
+/* STUDIO NAV STRIP */
+.studio-strip{padding:clamp(20px,3vw,32px) var(--px);background:var(--ink);display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.studio-strip-label{font-size:.56rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,241,236,.28);margin-right:6px;}
+.studio-chip{display:inline-flex;font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:.32rem 1rem;border-radius:100px;border:1px solid rgba(244,241,236,.14);color:rgba(244,241,236,.4);transition:background .22s,border-color .22s,color .22s;}
+.studio-chip:hover{border-color:rgba(244,241,236,.3);color:var(--bone);}
+.studio-chip.current{background:var(--ember);border-color:var(--ember);color:var(--bone);}
+
+/* ABOUT HERO */
+.ab-hero{min-height:92svh;background:var(--ink);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:0 var(--px) var(--sy);}
+.ab-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 72% 40%,rgba(212,76,39,.06) 0%,transparent 55%),radial-gradient(circle at 18% 75%,rgba(212,76,39,.04) 0%,transparent 45%);pointer-events:none;}
+.ab-grain{position:absolute;inset:0;pointer-events:none;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='ng'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23ng)'/%3E%3C/svg%3E");}
+.ab-bg-word{position:absolute;right:var(--px);bottom:0;font-family:'Cormorant Garamond',serif;font-size:clamp(100px,22vw,300px);font-weight:300;color:transparent;-webkit-text-stroke:1px rgba(244,241,236,.04);pointer-events:none;user-select:none;line-height:1;letter-spacing:-.04em;}
+.ab-breadcrumb{font-size:.56rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,236,.35);display:flex;align-items:center;gap:8px;margin-bottom:clamp(28px,4vw,44px);opacity:0;transform:translateY(12px);transition:opacity .7s .2s,transform .7s .2s;}
+.ab-breadcrumb.vis{opacity:1;transform:none;}
+.ab-breadcrumb a{color:rgba(244,241,236,.28);transition:color .2s;}
+.ab-breadcrumb a:hover{color:rgba(244,241,236,.7);}
+.ab-breadcrumb span.cur{color:var(--ember);}
+.ab-h1{font-family:'Cormorant Garamond',serif;font-size:clamp(52px,11vw,148px);font-weight:300;line-height:.86;letter-spacing:-.025em;overflow:hidden;}
+.ab-h1 .aline{display:block;color:var(--bone);opacity:0;transform:translateY(100%);transition:opacity .9s var(--ease),transform .9s var(--ease);}
+.ab-h1 .aline.vis{opacity:1;transform:none;}
+.ab-h1 .it{font-style:italic;}
+.ab-h1 .em{color:var(--ember);}
+.ab-hero-foot{padding-top:clamp(24px,3vw,40px);border-top:1px solid rgba(244,241,236,.1);display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between;opacity:0;transform:translateY(16px);transition:opacity .85s .9s,transform .85s .9s;}
+.ab-hero-foot.vis{opacity:1;transform:none;}
+.ab-tagline{font-size:.9rem;font-weight:500;line-height:1.82;color:rgba(244,241,236,.45);max-width:52ch;}
+.ab-badges{display:flex;gap:8px;flex-wrap:wrap;}
+.ab-badge{font-size:.52rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,236,.35);padding:.22rem .8rem;border:1px solid rgba(244,241,236,.1);border-radius:100px;}
+
+/* MANIFESTO */
+.manifesto{padding:var(--sy) var(--px);background:var(--bone);}
+.mani-grid{display:grid;grid-template-columns:1fr;gap:60px;}
+@media(min-width:860px){.mani-grid{grid-template-columns:1fr 1fr;gap:80px;align-items:start;}}
+.mani-heading{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,4.5vw,56px);font-weight:400;line-height:.92;letter-spacing:-.02em;margin-top:12px;}
+.mani-heading em{font-style:italic;color:var(--ember);}
+.mani-body{font-size:.86rem;font-weight:500;line-height:1.9;color:var(--muted);}
+.mani-body p+p{margin-top:16px;}
+.mani-quote{margin-top:32px;padding:28px 28px 28px 20px;border-left:3px solid var(--ember);background:var(--off);}
+.mani-quote p{font-family:'Cormorant Garamond',serif;font-size:clamp(1rem,1.8vw,1.35rem);font-style:italic;line-height:1.5;color:var(--ink);margin-bottom:10px;}
+.mani-quote cite{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ember);}
+
+/* STATS BAND */
+.stats-band{background:var(--off);border-top:1px solid rgba(14,13,11,.08);border-bottom:1px solid rgba(14,13,11,.08);}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);}
+@media(min-width:640px){.stats-grid{grid-template-columns:repeat(4,1fr);}}
+.stat-cell{padding:clamp(32px,5vw,56px) clamp(20px,3vw,40px);border-right:1px solid rgba(14,13,11,.08);position:relative;overflow:hidden;}
+.stat-cell:last-child{border-right:none;}
+@media(max-width:639px){.stat-cell:nth-child(2n){border-right:none;}.stat-cell:nth-child(n+3){border-top:1px solid rgba(14,13,11,.08);}}
+.stat-n{font-family:'Cormorant Garamond',serif;font-size:clamp(42px,7vw,80px);font-weight:300;line-height:.9;letter-spacing:-.03em;color:var(--ink);display:flex;align-items:baseline;gap:.06em;}
+.stat-plus{font-size:.45em;color:var(--ember);font-weight:400;}
+.stat-label{font-size:.66rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:12px;}
+
+/* FOUNDER */
+.founder{padding:var(--sy) var(--px);background:var(--ink);position:relative;overflow:hidden;}
+.founder::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 50%,rgba(212,76,39,.05) 0%,transparent 55%);pointer-events:none;}
+.founder-grid{display:grid;grid-template-columns:1fr;gap:clamp(48px,6vw,72px);}
+@media(min-width:860px){.founder-grid{grid-template-columns:1fr 1fr;gap:80px;align-items:start;}}
+.founder-label{font-size:.58rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,241,236,.32);display:flex;align-items:center;gap:10px;}
+.founder-label::before{content:'';width:18px;height:1px;background:rgba(244,241,236,.14);flex-shrink:0;}
+.founder-name{font-family:'Cormorant Garamond',serif;font-size:clamp(36px,6vw,72px);font-weight:300;color:var(--bone);line-height:.9;letter-spacing:-.02em;margin-top:12px;margin-bottom:4px;}
+.founder-role{font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ember);margin-bottom:32px;}
+.founder-body p{font-size:.86rem;font-weight:500;line-height:1.9;color:rgba(244,241,236,.42);margin-bottom:16px;}
+.founder-body p:last-child{margin-bottom:0;}
+.founder-quote{padding:28px 28px 28px 20px;border-left:3px solid var(--ember);background:rgba(244,241,236,.03);margin-top:28px;}
+.founder-quote p{font-family:'Cormorant Garamond',serif;font-size:clamp(1rem,1.6vw,1.2rem);font-style:italic;line-height:1.5;color:var(--bone);margin-bottom:8px;}
+.founder-quote cite{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ember);}
+.founder-right{}
+.founder-img-block{position:relative;aspect-ratio:3/4;overflow:hidden;background:var(--charcoal);}
+.founder-img-block img{width:100%;height:100%;object-fit:cover;filter:brightness(.75) grayscale(15%);transition:filter .8s;}
+.founder-img-block:hover img{filter:brightness(.85) grayscale(0%);}
+.founder-caption{display:flex;align-items:center;gap:14px;margin-top:20px;padding:16px 20px;background:rgba(244,241,236,.04);border:1px solid rgba(244,241,236,.08);}
+.founder-av{width:40px;height:40px;border-radius:50%;background:var(--ember);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--bone);flex-shrink:0;}
+.founder-cap-n{font-size:.8rem;font-weight:700;color:var(--bone);}
+.founder-cap-r{font-size:.6rem;color:rgba(244,241,236,.32);margin-top:2px;font-weight:500;}
+
+/* VALUES */
+.values{padding:var(--sy) var(--px);background:var(--charcoal);}
+.values-hd{margin-bottom:clamp(48px,6vw,72px);}
+.values-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,6vw,76px);font-weight:300;color:var(--bone);line-height:.9;letter-spacing:-.02em;margin-top:12px;}
+.values-title em{font-style:italic;color:var(--ember);}
+.values-grid{display:grid;grid-template-columns:1fr;gap:0;border-top:1px solid rgba(244,241,236,.07);}
+@media(min-width:768px){.values-grid{grid-template-columns:1fr 1fr;}}
+.val-item{padding:clamp(28px,4vw,44px) 0;border-bottom:1px solid rgba(244,241,236,.07);transition:padding-left .32s var(--ease);}
+@media(min-width:768px){.val-item{padding:clamp(28px,4vw,44px) clamp(20px,3vw,40px);border-right:1px solid rgba(244,241,236,.07);border-bottom:none;}.val-item:nth-child(n+3){border-top:1px solid rgba(244,241,236,.07);}.val-item:nth-child(2n){border-right:none;}}
+.val-item:hover{padding-left:12px;}
+@media(min-width:768px){.val-item:hover{padding-left:clamp(28px,3vw,48px);}}
+.val-n{font-size:.54rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,241,236,.2);margin-bottom:14px;}
+.val-title{font-family:'Cormorant Garamond',serif;font-size:clamp(22px,3vw,34px);font-weight:400;color:var(--bone);letter-spacing:-.01em;margin-bottom:10px;transition:color .28s;}
+.val-item:hover .val-title{color:var(--ember);}
+.val-body{font-size:.8rem;font-weight:500;line-height:1.82;color:rgba(244,241,236,.35);max-width:38ch;}
+
+/* TEAM */
+.team{padding:var(--sy) var(--px);background:var(--off);}
+.team-hd{margin-bottom:clamp(40px,5vw,64px);}
+.team-title{font-family:'Cormorant Garamond',serif;font-size:clamp(30px,5vw,60px);font-weight:400;line-height:.9;letter-spacing:-.02em;margin-top:12px;}
+.team-title em{font-style:italic;color:var(--muted);}
+.team-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;}
+@media(min-width:640px){.team-grid{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:1024px){.team-grid{grid-template-columns:repeat(4,1fr);}}
+.team-card{background:var(--bone);overflow:hidden;transition:transform .38s var(--ease);}
+.team-card:hover{transform:translateY(-4px);}
+.team-photo{aspect-ratio:3/4;overflow:hidden;background:var(--parchm);}
+.team-photo img{width:100%;height:100%;object-fit:cover;filter:grayscale(15%);transition:filter .6s,transform .8s;}
+.team-card:hover .team-photo img{filter:grayscale(0%);transform:scale(1.04);}
+.team-info{padding:18px 16px 16px;}
+.team-name{font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:400;letter-spacing:-.01em;margin-bottom:4px;}
+.team-role{font-size:.58rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+
+/* CTA */
+.cta-band{padding:clamp(80px,12vw,140px) var(--px);background:var(--bone);text-align:center;position:relative;overflow:hidden;}
+.cta-band-bg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Cormorant Garamond',serif;font-size:clamp(80px,18vw,240px);font-weight:300;color:transparent;-webkit-text-stroke:1px rgba(14,13,11,.04);white-space:nowrap;pointer-events:none;user-select:none;}
+.cta-band-inner{position:relative;z-index:1;}
+.cta-band-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,6.5vw,88px);font-weight:300;line-height:.9;letter-spacing:-.025em;margin-top:18px;margin-bottom:18px;}
+.cta-band-title em{font-style:italic;color:var(--ember);}
+.cta-band-sub{font-size:.84rem;font-weight:500;line-height:1.85;color:var(--muted);max-width:46ch;margin:0 auto 36px;}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+
+/* FOOTER */
+footer{background:var(--ink);padding:clamp(60px,8vw,80px) var(--px) clamp(28px,4vw,40px);}
+.ft-g{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:clamp(48px,7vw,64px);}
+@media(min-width:960px){.ft-g{grid-template-columns:2fr 1fr 1fr 1fr;}}
+.ft-logo{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:400;color:var(--bone);display:block;margin-bottom:14px;}
+.ft-logo em{font-style:normal;color:var(--ember);}
+.ft-desc{font-size:.78rem;font-weight:500;line-height:1.78;color:rgba(244,241,236,.28);max-width:28ch;margin-bottom:22px;}
+.ft-socs{display:flex;gap:10px;}
+.ft-soc{width:34px;height:34px;border-radius:50%;border:1px solid rgba(244,241,236,.1);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:rgba(244,241,236,.3);transition:border-color .22s,color .22s;}
+.ft-soc:hover{border-color:var(--ember);color:var(--ember);}
+.ft-col h4{font-size:.56rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,241,236,.28);margin-bottom:18px;}
+.ft-col ul{list-style:none;display:flex;flex-direction:column;gap:9px;}
+.ft-col a{font-size:.76rem;font-weight:500;color:rgba(244,241,236,.38);transition:color .2s;}
+.ft-col a:hover{color:var(--bone);}
+.ft-bot{padding-top:22px;border-top:1px solid rgba(244,241,236,.07);display:flex;flex-direction:column;gap:6px;}
+@media(min-width:600px){.ft-bot{flex-direction:row;justify-content:space-between;align-items:center;}}
+.ft-copy,.ft-made{font-size:.68rem;font-weight:500;color:rgba(244,241,236,.18);}
+.ft-made em{font-style:normal;color:var(--ember);}
+
+
+/* PROCESS-SPECIFIC STYLES */
+.proc-hero{min-height:90svh;background:var(--ink);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:0 var(--px) var(--sy);}
+.proc-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 75% 35%,rgba(212,76,39,.07) 0%,transparent 55%);pointer-events:none;}
+.proc-grain{position:absolute;inset:0;pointer-events:none;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='ng'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23ng)'/%3E%3C/svg%3E");}
+.proc-bg-num{position:absolute;right:var(--px);bottom:0;font-family:'Cormorant Garamond',serif;font-size:clamp(120px,22vw,320px);font-weight:300;color:transparent;-webkit-text-stroke:1px rgba(244,241,236,.04);pointer-events:none;user-select:none;line-height:1;letter-spacing:-.04em;}
+.proc-bc{font-size:.56rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,236,.35);display:flex;align-items:center;gap:8px;margin-bottom:clamp(28px,4vw,44px);opacity:0;transform:translateY(12px);transition:opacity .7s .2s,transform .7s .2s;}
+.proc-bc.vis{opacity:1;transform:none;}
+.proc-bc a{color:rgba(244,241,236,.28);transition:color .2s;}
+.proc-bc a:hover{color:rgba(244,241,236,.7);}
+.proc-bc .cur{color:var(--ember);}
+.proc-h1{font-family:'Cormorant Garamond',serif;font-size:clamp(52px,11vw,148px);font-weight:300;line-height:.86;letter-spacing:-.025em;}
+.proc-h1 .pl{display:block;color:var(--bone);opacity:0;transform:translateY(100%);transition:opacity .9s var(--ease),transform .9s var(--ease);}
+.proc-h1 .pl.vis{opacity:1;transform:none;}
+.proc-h1 .it{font-style:italic;}
+.proc-h1 .em{color:var(--ember);}
+.proc-hero-foot{padding-top:clamp(24px,3vw,40px);border-top:1px solid rgba(244,241,236,.1);display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between;opacity:0;transform:translateY(16px);transition:opacity .85s .9s,transform .85s .9s;}
+.proc-hero-foot.vis{opacity:1;transform:none;}
+.proc-tagline{font-size:.9rem;font-weight:500;line-height:1.82;color:rgba(244,241,236,.45);max-width:52ch;}
+.proc-pill{font-size:.52rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,236,.35);padding:.22rem .8rem;border:1px solid rgba(244,241,236,.1);border-radius:100px;}
+
+/* PHASE TIMELINE */
+.phases{padding:var(--sy) var(--px);background:var(--bone);}
+.phase-item{display:grid;grid-template-columns:1fr;gap:40px;padding:clamp(48px,6vw,72px) 0;border-top:1px solid rgba(14,13,11,.08);}
+@media(min-width:860px){.phase-item{grid-template-columns:200px 1fr 1fr;gap:60px;align-items:start;}}
+.phase-item:last-child{border-bottom:1px solid rgba(14,13,11,.08);}
+.phase-left{display:flex;flex-direction:column;gap:12px;}
+.phase-n{font-family:'Cormorant Garamond',serif;font-size:clamp(60px,8vw,100px);font-weight:300;line-height:.9;color:rgba(14,13,11,.08);letter-spacing:-.03em;transition:color .45s var(--ease);}
+.phase-item:hover .phase-n{color:var(--ember);}
+.phase-label{font-size:.54rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ember);}
+.phase-duration{font-size:.62rem;font-weight:600;color:var(--mid);display:flex;align-items:center;gap:7px;}
+.phase-duration::before{content:'';width:12px;height:1px;background:var(--parchm);}
+.phase-title{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,4vw,48px);font-weight:400;line-height:.9;letter-spacing:-.02em;margin-bottom:16px;transition:color .28s;}
+.phase-item:hover .phase-title{color:var(--ember);}
+.phase-desc{font-size:.86rem;font-weight:500;line-height:1.88;color:var(--muted);margin-bottom:24px;}
+.phase-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.phase-chip{font-size:.52rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mid);padding:.2rem .72rem;border:1px solid rgba(14,13,11,.12);border-radius:100px;transition:border-color .28s,color .28s;}
+.phase-item:hover .phase-chip{border-color:rgba(212,76,39,.28);color:var(--ember);}
+.phase-right{}
+.phase-outcomes{display:flex;flex-direction:column;gap:10px;}
+.phase-out{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--off);transition:background .28s,transform .28s var(--ease);}
+.phase-item:hover .phase-out{background:var(--bone);}
+.phase-out:hover{transform:translateX(6px);}
+.phase-out-dot{width:6px;height:6px;border-radius:50%;background:var(--ember);flex-shrink:0;}
+.phase-out-txt{font-size:.78rem;font-weight:600;color:var(--ink);}
+
+/* PRINCIPLES */
+.principles{padding:var(--sy) var(--px);background:var(--charcoal);}
+.princ-hd{margin-bottom:clamp(48px,6vw,72px);}
+.princ-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,6vw,76px);font-weight:300;color:var(--bone);line-height:.9;letter-spacing:-.02em;margin-top:12px;}
+.princ-title em{font-style:italic;color:var(--ember);}
+.princ-grid{display:grid;grid-template-columns:1fr;gap:20px;}
+@media(min-width:640px){.princ-grid{grid-template-columns:1fr 1fr;}}
+@media(min-width:1024px){.princ-grid{grid-template-columns:repeat(3,1fr);}}
+.princ-card{padding:clamp(28px,3.5vw,40px);background:rgba(244,241,236,.03);border:1px solid rgba(244,241,236,.07);transition:border-color .32s,background .32s;}
+.princ-card:hover{border-color:rgba(212,76,39,.25);background:rgba(212,76,39,.04);}
+.princ-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,236,.1);border-radius:50%;margin-bottom:20px;transition:border-color .28s;}
+.princ-icon svg{width:16px;height:16px;stroke:rgba(244,241,236,.35);fill:none;stroke-width:1.3;transition:stroke .28s;}
+.princ-card:hover .princ-icon{border-color:var(--ember);}
+.princ-card:hover .princ-icon svg{stroke:var(--ember);}
+.princ-title-sm{font-family:'Cormorant Garamond',serif;font-size:clamp(18px,2.2vw,26px);font-weight:400;color:var(--bone);margin-bottom:10px;transition:color .28s;}
+.princ-card:hover .princ-title-sm{color:var(--ember);}
+.princ-body{font-size:.78rem;font-weight:500;line-height:1.82;color:rgba(244,241,236,.32);}
+
+/* FAQ */
+.faq{padding:var(--sy) var(--px);background:var(--off);}
+.faq-grid{display:grid;grid-template-columns:1fr;gap:48px;}
+@media(min-width:860px){.faq-grid{grid-template-columns:1fr 1fr;gap:80px;}}
+.faq-title{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,4.5vw,52px);font-weight:400;line-height:.92;letter-spacing:-.02em;margin-top:12px;}
+.faq-title em{font-style:italic;color:var(--muted);}
+.faq-list{display:flex;flex-direction:column;}
+.faq-item{border-bottom:1px solid rgba(14,13,11,.1);}
+.faq-q{display:flex;justify-content:space-between;align-items:center;padding:20px 0;gap:16px;cursor:pointer;}
+.faq-q-txt{font-family:'Cormorant Garamond',serif;font-size:clamp(16px,1.8vw,22px);font-weight:400;letter-spacing:-.01em;transition:color .22s;}
+.faq-item.open .faq-q-txt{color:var(--ember);}
+.faq-icon{width:28px;height:28px;border-radius:50%;border:1px solid rgba(14,13,11,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .22s,transform .38s var(--spring);}
+.faq-item.open .faq-icon{background:var(--ember);border-color:var(--ember);transform:rotate(45deg);}
+.faq-icon svg{width:10px;height:10px;stroke:var(--ink);fill:none;transition:stroke .22s;}
+.faq-item.open .faq-icon svg{stroke:var(--bone);}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .5s var(--ease);}
+.faq-item.open .faq-a{max-height:200px;}
+.faq-a-txt{font-size:.82rem;font-weight:500;line-height:1.85;color:var(--muted);padding:0 0 20px;}
+
+/* CTA & FOOTER reused from above */
+.cta-band{padding:clamp(80px,12vw,140px) var(--px);background:var(--bone);text-align:center;position:relative;overflow:hidden;}
+.cta-band-bg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Cormorant Garamond',serif;font-size:clamp(80px,18vw,240px);font-weight:300;color:transparent;-webkit-text-stroke:1px rgba(14,13,11,.04);white-space:nowrap;pointer-events:none;user-select:none;}
+.cta-band-inner{position:relative;z-index:1;}
+.cta-band-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,6.5vw,88px);font-weight:300;line-height:.9;letter-spacing:-.025em;margin-top:18px;margin-bottom:18px;}
+.cta-band-title em{font-style:italic;color:var(--ember);}
+.cta-band-sub{font-size:.84rem;font-weight:500;line-height:1.85;color:var(--muted);max-width:46ch;margin:0 auto 36px;}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+footer{background:var(--ink);padding:clamp(60px,8vw,80px) var(--px) clamp(28px,4vw,40px);}
+.ft-g{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:clamp(48px,7vw,64px);}
+@media(min-width:960px){.ft-g{grid-template-columns:2fr 1fr 1fr 1fr;}}
+.ft-logo{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:400;color:var(--bone);display:block;margin-bottom:14px;}
+.ft-logo em{font-style:normal;color:var(--ember);}
+.ft-desc{font-size:.78rem;font-weight:500;line-height:1.78;color:rgba(244,241,236,.28);max-width:28ch;margin-bottom:22px;}
+.ft-socs{display:flex;gap:10px;}
+.ft-soc{width:34px;height:34px;border-radius:50%;border:1px solid rgba(244,241,236,.1);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:rgba(244,241,236,.3);transition:border-color .22s,color .22s;}
+.ft-soc:hover{border-color:var(--ember);color:var(--ember);}
+.ft-col h4{font-size:.56rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,241,236,.28);margin-bottom:18px;}
+.ft-col ul{list-style:none;display:flex;flex-direction:column;gap:9px;}
+.ft-col a{font-size:.76rem;font-weight:500;color:rgba(244,241,236,.38);transition:color .2s;}
+.ft-col a:hover{color:var(--bone);}
+.ft-bot{padding-top:22px;border-top:1px solid rgba(244,241,236,.07);display:flex;flex-direction:column;gap:6px;}
+@media(min-width:600px){.ft-bot{flex-direction:row;justify-content:space-between;align-items:center;}}
+.ft-copy,.ft-made{font-size:.68rem;font-weight:500;color:rgba(244,241,236,.18);}
+.ft-made em{font-style:normal;color:var(--ember);}
+
+/* ── NAV & HERO FIXES ── */
+:root{--nav-h:68px;}
+@media(max-width:767px){:root{--nav-h:60px;}}
+
+/* Fix submenu: bridge gap between link and dropdown so mouse doesn't lose hover */
+.nav-item::after{
+  content:'';position:absolute;
+  top:100%;left:0;right:0;
+  height:20px; /* bridges the gap */
+  background:transparent;
+}
+.nav-drop{
+  top:calc(100% + 1px); /* reduced gap, relies on ::after for bridge */
+}
+/* Ensure dropdown is above everything */
+.nav-item:hover .nav-drop{
+  pointer-events:auto;
+  z-index:600;
+}
+.nav-drop a{
+  pointer-events:auto;
+  cursor:pointer;
+}
+
+/* ── Hero spacing fix: always leave room for fixed nav ── */
+.pg-hero{padding-top:calc(var(--nav-h) + 24px);}
+#hero{padding-top:var(--nav-h);}
+.cs-hero{padding-top:var(--nav-h);}
+.post-layout{padding-top:0;}
+
+/* ── Fix TOC sidebar top offset in case-study ── */
+.post-toc{top:var(--nav-h) !important;height:calc(100vh - var(--nav-h)) !important;}
+
+/* ── "View" label: keep it but move it away from nav area ── */
+#curLbl{
+  position:fixed !important;
+  top:auto !important;
+  pointer-events:none;
+  z-index:9996;
+  font-size:.56rem;
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--ink);
+  background:var(--bone);
+  border:1px solid rgba(14,13,11,.1);
+  padding:.28rem .7rem;
+  border-radius:100px;
+  white-space:nowrap;
+  opacity:0;
+  transform:translate(-50%,14px);
+  transition:opacity .22s,transform .22s;
+}
+#curLbl.vis{opacity:1;transform:translate(-50%,18px);}
+
+</style>
+</head>
+<body>
+<div class="noise" aria-hidden="true"></div>
+<div id="prog" aria-hidden="true"></div>
+<div id="cur3" aria-hidden="true"><div class="c3s"></div></div>
+<div id="curTrail" aria-hidden="true"></div>
+<nav id="nav">
+  <a href="index.html" class="logo">DC<em>.</em>ASEL</a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="index.html#services" class="nav-link">Services<svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg></a>
+      <div class="nav-drop"><a href="brand-identity.html">Brand Identity</a><a href="web-design.html">Web Design</a><a href="product-design.html">Product Design</a><a href="motion-design.html">Motion Design</a><a href="creative-direction.html">Creative Direction</a></div>
+    </div>
+    <a href="index.html#work" class="nav-link">Work</a>
+    <div class="nav-item">
+      <a href="about.html" class="nav-link active">Studio<svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg></a>
+      <div class="nav-drop"><a href="about.html">About</a><div class="drop-div"></div><a href="process.html" class="active">Process</a><div class="drop-div"></div><a href="why-dcasel.html">Why Dcasel</a></div>
+    </div>
+  </div>
+  <a href="index.html#cta" class="nav-cta">Start a Project</a>
+  <button class="ham" id="hamBtn"><span></span><span></span><span></span></button>
+</nav>
+<div class="mob" id="mobMenu">
+  <nav class="mob-links"><a href="index.html#services" class="mm">Services</a><a href="index.html#work" class="mm">Work</a><a href="about.html" class="mm">Studio</a><a href="index.html#cta" class="mm">Contact</a></nav>
+  <a href="index.html#cta" class="mob-btn mm">Start a Project \u2192</a>
+</div>
+
+<section class="proc-hero">
+  <div class="proc-grain" aria-hidden="true"></div>
+  <div class="proc-bg-num" aria-hidden="true">Process</div>
+  <div class="proc-bc" id="procBc"><a href="index.html">Home</a><span>\u2192</span><span class="cur">Process</span></div>
+  <h1 class="proc-h1">
+    <span class="pl d1" id="pl1">Our</span>
+    <span class="pl it d2" id="pl2">Deliberate</span>
+    <span class="pl em d3" id="pl3">Process.</span>
+  </h1>
+  <div class="proc-hero-foot" id="procFoot">
+    <p class="proc-tagline">Four phases. No guesswork. A clear path from your first call to a launched product that moves your business forward.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <span class="proc-pill">4 Phases</span><span class="proc-pill">No Surprises</span><span class="proc-pill">Collaborative</span>
+    </div>
+  </div>
+</section>
+
+<div class="studio-strip">
+  <span class="studio-strip-label">Studio</span>
+  <a href="about.html" class="studio-chip">About</a>
+  <a href="process.html" class="studio-chip current">Process</a>
+  <a href="why-dcasel.html" class="studio-chip">Why Dcasel</a>
+</div>
+
+<section class="phases">
+  <!-- Phase 1 -->
+  <div class="phase-item rev">
+    <div class="phase-left">
+      <div class="phase-n">01</div>
+      <div class="phase-label">Discovery</div>
+      <div class="phase-duration">1-2 Weeks</div>
+    </div>
+    <div>
+      <h2 class="phase-title">Discovery &amp; Research</h2>
+      <p class="phase-desc">We don't design until we understand the full picture. This phase is about deep immersion in your world — your business model, your users, your competitors, and the cultural context you operate in. Most problems people think are design problems are actually clarity problems. We find those first.</p>
+      <div class="phase-chips">
+        <span class="phase-chip">Stakeholder Interviews</span>
+        <span class="phase-chip">User Research</span>
+        <span class="phase-chip">Competitor Audit</span>
+        <span class="phase-chip">Analytics Review</span>
+        <span class="phase-chip">Brand Audit</span>
+      </div>
+    </div>
+    <div class="phase-right">
+      <div class="phase-outcomes">
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">Discovery Report</span></div>
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">User Insight Summary</span></div>
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">Competitive Landscape Map</span></div>
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">Problem Statement</span></div>
+      </div>
+    </div>
+  </div>
+  <!-- Phase 2 -->
+  <div class="phase-item rev d1">
+    <div class="phase-left">
+      <div class="phase-n">02</div>
+      <div class="phase-label">Strategy</div>
+      <div class="phase-duration">1 Week</div>
+    </div>
+    <div>
+      <h2 class="phase-title">Creative Strategy &amp; Direction</h2>
+      <p class="phase-desc">With research in hand, we define the creative platform — the central idea, tone, and visual direction that will guide every design decision. We write the brief together and align on measurable goals before anything gets designed. This is the most important meeting of the project.</p>
+      <div class="phase-chips">
+        <span class="phase-chip">Creative Brief</span>
+        <span class="phase-chip">Moodboarding</span>
+        <span class="phase-chip">Positioning</span>
+        <span class="phase-chip">KPI Setting</span>
+        <span class="phase-chip">Timeline</span>
+      </div>
+    </div>
+    <div class="phase-right">
+      <div class="phase-outcomes">
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">Creative Brief Document</span></div>
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">Visual Direction Moodboard</span></div>
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">KPI Framework</span></div>
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">Project Timeline</span></div>
+      </div>
+    </div>
+  </div>
+  <!-- Phase 3 -->
+  <div class="phase-item rev d2">
+    <div class="phase-left">
+      <div class="phase-n">03</div>
+      <div class="phase-label">Design</div>
+      <div class="phase-duration">2-4 Weeks</div>
+    </div>
+    <div>
+      <h2 class="phase-title">Design &amp; Build</h2>
+      <p class="phase-desc">Iterative design sprints with your team embedded. We move fast — presenting work early and often, incorporating feedback with precision. We refine obsessively. We push back when we think a direction isn't serving the goal. And we ship work that genuinely surprises you.</p>
+      <div class="phase-chips">
+        <span class="phase-chip">Wireframes</span>
+        <span class="phase-chip">Visual Design</span>
+        <span class="phase-chip">Prototypes</span>
+        <span class="phase-chip">Design System</span>
+        <span class="phase-chip">Dev Handoff</span>
+      </div>
+    </div>
+    <div class="phase-right">
+      <div class="phase-outcomes">
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">Wireframes (Low + Hi-Fi)</span></div>
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">Visual Design (All Screens)</span></div>
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">Interactive Prototype</span></div>
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">Figma / Asset Handoff</span></div>
+      </div>
+    </div>
+  </div>
+  <!-- Phase 4 -->
+  <div class="phase-item rev d3">
+    <div class="phase-left">
+      <div class="phase-n">04</div>
+      <div class="phase-label">Launch</div>
+      <div class="phase-duration">1 Week +</div>
+    </div>
+    <div>
+      <h2 class="phase-title">Launch &amp; Grow</h2>
+      <p class="phase-desc">Delivery, handoff, and ongoing support. We don't disappear after launch. We measure against the KPIs we set in Phase 2, identify what's working and what isn't, and keep iterating. 80% of our clients continue working with us after the first project — because that's where the real results happen.</p>
+      <div class="phase-chips">
+        <span class="phase-chip">QA & Testing</span>
+        <span class="phase-chip">Launch Support</span>
+        <span class="phase-chip">Analytics Setup</span>
+        <span class="phase-chip">Post-Launch Retainer</span>
+      </div>
+    </div>
+    <div class="phase-right">
+      <div class="phase-outcomes">
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">QA Sign-Off</span></div>
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">Launch Checklist</span></div>
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">30-Day Performance Review</span></div>
+        <div class="phase-out"><div class="phase-out-dot"></div><span class="phase-out-txt">Retainer Options</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="principles">
+  <div class="princ-hd">
+    <div class="sec-tag rev" style="color:rgba(244,241,236,.35)">How we work</div>
+    <h2 class="princ-title rev d1">The principles<br>that <em>guide us</em></h2>
+  </div>
+  <div class="princ-grid">
+    <div class="princ-card rev">
+      <div class="princ-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
+      <div class="princ-title-sm">Research Before Design</div>
+      <p class="princ-body">We don't start designing until we understand the problem deeply. Every brief deserves to be questioned.</p>
+    </div>
+    <div class="princ-card rev d1">
+      <div class="princ-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+      <div class="princ-title-sm">Your Team is Our Team</div>
+      <p class="princ-body">We work with your stakeholders throughout — not in isolation. The best work happens when clients are in the room.</p>
+    </div>
+    <div class="princ-card rev d2">
+      <div class="princ-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <div class="princ-title-sm">Fast, but Never Rushed</div>
+      <p class="princ-body">Our process is optimised for speed without sacrificing craft. Most projects launch 20% ahead of schedule.</p>
+    </div>
+    <div class="princ-card rev d3">
+      <div class="princ-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+      <div class="princ-title-sm">Decisions Are Documented</div>
+      <p class="princ-body">Every creative decision is logged with its rationale. No black boxes, no mystery — just clear thinking.</p>
+    </div>
+    <div class="princ-card rev d4">
+      <div class="princ-icon"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+      <div class="princ-title-sm">Honest Feedback, Always</div>
+      <p class="princ-body">We'll tell you when we think a direction is wrong. Tactfully, but honestly. That's what a real partner does.</p>
+    </div>
+    <div class="princ-card rev d5">
+      <div class="princ-icon"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+      <div class="princ-title-sm">We Measure What Matters</div>
+      <p class="princ-body">We set KPIs before we start and report against them after launch. Good design should show up in your numbers.</p>
+    </div>
+  </div>
+</section>
+
+<section class="faq">
+  <div class="faq-grid">
+    <div class="rev">
+      <div class="sec-tag">Common Questions</div>
+      <h2 class="faq-title">Questions about<br>working with <em>us?</em></h2>
+    </div>
+    <div class="faq-list rev d2">
+      <div class="faq-item">
+        <div class="faq-q"><span class="faq-q-txt">How long does a typical project take?</span><div class="faq-icon"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 5v14M5 12l7 7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+        <div class="faq-a"><p class="faq-a-txt">It depends on scope, but most brand identity projects run 4–6 weeks, web design projects 6–10 weeks, and product design engagements 8–12 weeks. Complex multi-discipline projects are scoped individually.</p></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span class="faq-q-txt">How involved do I need to be?</span><div class="faq-icon"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 5v14M5 12l7 7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+        <div class="faq-a"><p class="faq-a-txt">Moderately. We'll need your time in the Discovery and Strategy phases, and feedback checkpoints along the way. Most clients spend 2–3 hours per week engaging with the project. We handle the rest.</p></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span class="faq-q-txt">Do you work with startups or only established companies?</span><div class="faq-icon"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 5v14M5 12l7 7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+        <div class="faq-a"><p class="faq-a-txt">Both. We've worked with everything from pre-seed startups building their first brand to Series C companies redesigning mature products. What matters is ambition and willingness to do the work properly.</p></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span class="faq-q-txt">What happens after the project ends?</span><div class="faq-icon"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 5v14M5 12l7 7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+        <div class="faq-a"><p class="faq-a-txt">We offer retainer arrangements for ongoing design support — from brand guardianship to continuous product iteration. 80% of our clients continue after the initial project. We're built for long-term partnerships.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="cta-band-bg" aria-hidden="true">Process</div>
+  <div class="cta-band-inner">
+    <div class="sec-tag rev" style="justify-content:center">Ready to start?</div>
+    <h2 class="cta-band-title rev d1">Let's begin with a<br>conversation — it's <em>free.</em></h2>
+    <p class="cta-band-sub rev d2">Tell us what you're working on. We'll tell you honestly if we're the right fit.</p>
+    <div class="cta-btns rev d3">
+      <a href="index.html#cta" class="btn-p">Start a Project <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <a href="index.html#work" class="btn-o">See our work</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="ft-g">
+    <div><a href="index.html" class="ft-logo">DC<em>.</em>ASEL</a><p class="ft-desc">A boutique design studio crafting remarkable brand identities and digital experiences since 2016.</p><div class="ft-socs"><a href="#" class="ft-soc">Li</a><a href="#" class="ft-soc">Ig</a><a href="#" class="ft-soc">Dr</a><a href="#" class="ft-soc">Bé</a></div></div>
+    <div class="ft-col"><h4>Services</h4><ul><li><a href="brand-identity.html">Brand Identity</a></li><li><a href="web-design.html">Web Design</a></li><li><a href="product-design.html">Product Design</a></li><li><a href="motion-design.html">Motion Design</a></li><li><a href="creative-direction.html">Creative Direction</a></li></ul></div>
+    <div class="ft-col"><h4>Studio</h4><ul><li><a href="about.html">About</a></li><li><a href="process.html">Process</a></li><li><a href="why-dcasel.html">Why Dcasel</a></li><li><a href="index.html#work">Case Studies</a></li></ul></div>
+    <div class="ft-col"><h4>Contact</h4><ul><li><a href="mailto:hello@dcasel.com">hello@dcasel.com</a></li><li><a href="#">Bengaluru, India</a></li><li><a href="index.html#cta">Start a Project</a></li></ul></div>
+  </div>
+  <div class="ft-bot"><span class="ft-copy">\u00a9 2025 Dcasel Creative Pvt. Ltd.</span><span class="ft-made">Crafted with care in <em>Bengaluru</em></span></div>
+</footer>
+
+<script>
+(function(){
+const $$=(s,el=document)=>[...el.querySelectorAll(s)];
+const isPtr=window.matchMedia('(pointer:fine)').matches;
+if(isPtr){
+  const cur=document.getElementById('cur3');const trail=document.getElementById('curTrail');let mx=0,my=0,cx=0,cy=0,tx=0,ty=0;
+  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+  (function tick(){cx+=(mx-cx)*.18;cy+=(my-cy)*.18;tx+=(mx-tx)*.08;ty+=(my-ty)*.08;cur.style.left=cx+'px';cur.style.top=cy+'px';trail.style.left=tx+'px';trail.style.top=ty+'px';const dx=mx-cx,dy=my-cy;cur.style.transform=`translate(-50%,-50%) rotateX(${Math.max(-16,Math.min(16,dy*.28))}deg) rotateY(${Math.max(-16,Math.min(16,-dx*.28))}deg)`;requestAnimationFrame(tick);})();
+  $$("a,button").forEach(el=>{el.addEventListener("mouseenter",()=>cur.classList.add("hov"));el.addEventListener("mouseleave",()=>cur.classList.remove("hov"));});
+}
+const prog=document.getElementById('prog');
+window.addEventListener('scroll',()=>{prog.style.transform=`scaleX(${window.scrollY/(document.body.scrollHeight-window.innerHeight)||0})`;},{passive:true});
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>nav.classList.toggle('stuck',window.scrollY>30),{passive:true});
+const hamBtn=document.getElementById('hamBtn');const mob=document.getElementById('mobMenu');
+hamBtn.addEventListener('click',()=>{const o=mob.classList.toggle('open');hamBtn.classList.toggle('open',o);document.body.style.overflow=o?'hidden':'';});
+$$('.mm').forEach(a=>a.addEventListener('click',()=>{mob.classList.remove('open');hamBtn.classList.remove('open');document.body.style.overflow='';}));
+setTimeout(()=>{
+  document.getElementById('procBc')?.classList.add('vis');
+  ['pl1','pl2','pl3'].forEach((id,i)=>setTimeout(()=>document.getElementById(id)?.classList.add('vis'),300+i*150));
+  setTimeout(()=>document.getElementById('procFoot')?.classList.add('vis'),900);
+},80);
+const ro=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');ro.unobserve(e.target);}});},{threshold:.07,rootMargin:'0px 0px -36px 0px'});
+$$('.rev').forEach(el=>ro.observe(el));
+// FAQ accordion
+$$('.faq-item').forEach(item=>{item.querySelector('.faq-q').addEventListener('click',()=>{const wasOpen=item.classList.contains('open');$$('.faq-item').forEach(i=>i.classList.remove('open'));if(!wasOpen)item.classList.add('open');});});
+})();
+
+/* ── Submenu: ensure click works (pointer-events fix) ── */
+(function(){
+  document.querySelectorAll('.nav-item').forEach(item=>{
+    const drop = item.querySelector('.nav-drop');
+    if(!drop) return;
+    // Keep dropdown open while moving between link and dropdown
+    let leaveTimer;
+    item.addEventListener('mouseenter',()=>clearTimeout(leaveTimer));
+    item.addEventListener('mouseleave',()=>{
+      leaveTimer = setTimeout(()=>{
+        drop.style.pointerEvents='none';
+        drop.style.opacity='0';
+        drop.style.transform='translateX(-50%) translateY(-8px)';
+      }, 120);
+    });
+    drop.addEventListener('mouseenter',()=>{
+      clearTimeout(leaveTimer);
+      drop.style.pointerEvents='auto';
+      drop.style.opacity='1';
+      drop.style.transform='translateX(-50%) translateY(0)';
+    });
+    drop.addEventListener('mouseleave',()=>{
+      leaveTimer = setTimeout(()=>{
+        drop.style.pointerEvents='none';
+        drop.style.opacity='0';
+        drop.style.transform='translateX(-50%) translateY(-8px)';
+      }, 80);
+    });
+    // click on the parent link area — toggle for touch
+    const link = item.querySelector('.nav-link');
+    if(link){
+      link.addEventListener('click',e=>{
+        // if has dropdown and click is on the link (not on an anchor inside drop)
+        // do nothing — let default navigate. But prevent default only if href="#"
+        if(link.getAttribute('href')==='#' || !link.getAttribute('href')){
+          e.preventDefault();
+        }
+      });
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

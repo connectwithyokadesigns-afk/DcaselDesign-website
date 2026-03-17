@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motion Design — Dcasel Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Syne:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+@media(pointer:fine){*{cursor:none;}}
+:root{
+  --bone:#f4f1ec;--off:#eae6de;--parchm:#d9d4c9;
+  --mid:#a09b90;--muted:#6e6860;--ink:#0e0d0b;
+  --dark:#141210;--charcoal:#1c1a17;
+  --ember:#d44c27;--ember2:#e86240;
+  --ease:cubic-bezier(0.22,1,0.36,1);
+  --spring:cubic-bezier(0.34,1.56,0.64,1);
+  --px:20px;--sy:80px;
+}
+@media(min-width:480px){:root{--px:28px;}}
+@media(min-width:768px){:root{--px:44px;--sy:110px;}}
+@media(min-width:1024px){:root{--px:64px;--sy:140px;}}
+@media(min-width:1280px){:root{--px:80px;--sy:160px;}}
+body{font-family:'Syne',sans-serif;background:var(--bone);color:var(--ink);overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+img{display:block;max-width:100%;height:auto;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+
+/* CURSOR */
+#cur3,#curTrail{display:none;position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);will-change:left,top;}
+@media(pointer:fine){#cur3{display:block;width:26px;height:26px;}#curTrail{display:block;width:48px;height:48px;border-radius:50%;border:1.5px solid rgba(14,13,11,.18);z-index:9998;}}
+.c3s{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.95) 0%,rgba(255,255,255,.4) 22%,var(--ink) 55%,rgba(0,0,0,.88) 100%);box-shadow:inset -3px -3px 8px rgba(0,0,0,.5),inset 2px 2px 6px rgba(255,255,255,.3),0 4px 16px rgba(14,13,11,.3);position:relative;transition:width .32s var(--ease),height .32s var(--ease);}
+.c3s::before{content:'';position:absolute;top:21%;left:24%;width:32%;height:22%;background:rgba(255,255,255,.55);border-radius:50%;transform:rotate(-35deg);filter:blur(2px);}
+#cur3.hov .c3s{width:52px;height:52px;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.9) 0%,rgba(255,255,255,.35) 22%,var(--ember) 55%,rgba(100,20,0,.88) 100%);}
+
+/* PROGRESS */
+#prog{position:fixed;top:0;left:0;height:1px;width:100%;background:var(--ember);z-index:9999;transform:scaleX(0);transform-origin:left;}
+
+/* NOISE */
+.noise{position:fixed;inset:0;pointer-events:none;z-index:8000;opacity:.022;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+/* NAV */
+nav{position:fixed;inset:0 0 auto;z-index:500;height:60px;padding:0 var(--px);display:flex;align-items:center;justify-content:space-between;transition:background .45s;}
+@media(min-width:768px){nav{height:68px;}}
+nav.stuck{background:rgba(244,241,236,.93);backdrop-filter:blur(20px) saturate(160%);border-bottom:1px solid rgba(14,13,11,.07);}
+.logo{font-family:'Cormorant Garamond',serif;font-size:1.45rem;font-weight:500;letter-spacing:.06em;color:var(--ink);}
+.logo em{font-style:normal;color:var(--ember);}
+.nav-links{display:none;align-items:center;gap:36px;}
+@media(min-width:900px){.nav-links{display:flex;}}
+.nav-item{position:relative;}
+.nav-link{font-size:.65rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);transition:color .2s;display:flex;align-items:center;gap:5px;}
+.nav-link:hover,.nav-link.active{color:var(--ink);}
+.nav-chevron{width:8px;height:8px;flex-shrink:0;transition:transform .25s var(--ease);}
+.nav-item:hover .nav-chevron{transform:rotate(180deg);}
+.nav-drop{position:absolute;top:calc(100% + 18px);left:50%;transform:translateX(-50%) translateY(-8px);background:var(--bone);border:1px solid rgba(14,13,11,.08);border-radius:4px;padding:8px;min-width:180px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:0 16px 48px rgba(14,13,11,.1);}
+.nav-item:hover .nav-drop{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+.nav-drop a{display:block;font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:.6rem .85rem;border-radius:2px;transition:color .18s,background .18s;white-space:nowrap;}
+.nav-drop a:hover,.nav-drop a.active{color:var(--ink);background:var(--off);}
+.nav-drop a.active{color:var(--ember)!important;}
+.drop-div{height:1px;background:rgba(14,13,11,.07);margin:4px 8px;}
+.nav-cta{display:none;font-size:.64rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:.42rem 1.15rem;border-radius:100px;border:1px solid rgba(14,13,11,.2);transition:background .22s,color .22s;}
+.nav-cta:hover{background:var(--ink);color:var(--bone);}
+@media(min-width:900px){.nav-cta{display:block;}}
+.ham{display:flex;flex-direction:column;justify-content:center;gap:5px;background:none;border:none;padding:8px;margin-right:-8px;width:40px;height:40px;}
+.ham span{display:block;width:22px;height:1.5px;background:var(--ink);border-radius:1px;transition:transform .32s var(--ease),opacity .22s;}
+.ham.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg);}
+.ham.open span:nth-child(2){opacity:0;}
+.ham.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg);}
+@media(min-width:900px){.ham{display:none;}}
+.mob{position:fixed;inset:0;z-index:490;background:var(--ink);display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;padding:0 var(--px) clamp(40px,8vw,64px);transform:translateY(-100%);transition:transform .65s var(--ease);pointer-events:none;}
+.mob.open{transform:translateY(0);pointer-events:auto;}
+.mob-links{display:flex;flex-direction:column;gap:0;margin-bottom:40px;width:100%;}
+.mob-links a{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,8.5vw,3.2rem);font-weight:300;font-style:italic;color:var(--bone);padding:11px 0;border-bottom:1px solid rgba(244,241,236,.07);opacity:0;transform:translateX(-18px);transition:opacity .48s var(--ease),transform .48s var(--ease);}
+.mob.open .mob-links a{opacity:1;transform:translateX(0);}
+.mob.open .mob-links a:nth-child(1){transition-delay:.07s;}
+.mob.open .mob-links a:nth-child(2){transition-delay:.13s;}
+.mob.open .mob-links a:nth-child(3){transition-delay:.19s;}
+.mob.open .mob-links a:nth-child(4){transition-delay:.25s;}
+.mob-links a:hover{color:var(--ember);}
+.mob-btn{display:flex;align-items:center;justify-content:center;width:100%;padding:.95rem;background:var(--ember);border-radius:100px;color:var(--bone);font-size:.76rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:0;transform:translateY(10px);transition:opacity .38s .36s var(--ease),transform .38s .36s var(--ease);}
+.mob.open .mob-btn{opacity:1;transform:translateY(0);}
+
+/* UTILS */
+.rev{opacity:0;transform:translateY(24px);transition:opacity .85s var(--ease),transform .85s var(--ease);}
+.rev.vis{opacity:1;transform:none;}
+.d1{transition-delay:.1s;}.d2{transition-delay:.2s;}.d3{transition-delay:.3s;}.d4{transition-delay:.4s;}
+.sec-tag{font-size:.58rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:10px;}
+.sec-tag::before{content:'';width:18px;height:1px;background:var(--parchm);flex-shrink:0;}
+.btn-p{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--bone);background:var(--ink);padding:.78rem 1.5rem;border-radius:100px;border:none;transition:transform .28s var(--ease),box-shadow .28s;}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(14,13,11,.18);}
+.btn-p svg{width:11px;height:11px;stroke:var(--bone);fill:none;flex-shrink:0;}
+.btn-o{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);padding:.78rem 1.5rem;border-radius:100px;border:1px solid rgba(14,13,11,.18);transition:background .22s;}
+.btn-o:hover{background:var(--off);}
+.btn-ember{display:inline-flex;align-items:center;gap:8px;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--bone);background:var(--ember);padding:.78rem 1.5rem;border-radius:100px;border:none;transition:transform .28s var(--ease),opacity .28s;}
+.btn-ember:hover{transform:translateY(-2px);opacity:.9;}
+.btn-ember svg{width:11px;height:11px;stroke:var(--bone);fill:none;}
+
+/* ── PAGE HERO ── */
+.pg-hero{min-height:88svh;display:flex;flex-direction:column;justify-content:flex-end;padding:0 var(--px) var(--sy);position:relative;overflow:hidden;background:var(--bone);}
+.pg-hero-grain{position:absolute;inset:0;pointer-events:none;opacity:.028;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='ng'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23ng)'/%3E%3C/svg%3E");}
+.pg-hero-num{position:absolute;right:var(--px);bottom:calc(var(--sy) + 40px);font-family:'Cormorant Garamond',serif;font-size:clamp(120px,22vw,280px);font-weight:300;line-height:1;color:transparent;-webkit-text-stroke:1px rgba(14,13,11,.06);pointer-events:none;user-select:none;letter-spacing:-.04em;}
+.pg-breadcrumb{font-size:.56rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px;margin-bottom:clamp(28px,4vw,44px);opacity:0;transform:translateY(12px);transition:opacity .7s .2s var(--ease),transform .7s .2s var(--ease);}
+.pg-breadcrumb.vis{opacity:1;transform:none;}
+.pg-breadcrumb a{color:var(--mid);transition:color .2s;}
+.pg-breadcrumb a:hover{color:var(--ink);}
+.pg-breadcrumb span{color:var(--ember);}
+.pg-h1{font-family:'Cormorant Garamond',serif;font-size:clamp(56px,12vw,152px);font-weight:400;line-height:.86;letter-spacing:-.025em;overflow:hidden;}
+.pg-h1 .line{display:block;opacity:0;transform:translateY(100%);transition:opacity .9s var(--ease),transform .9s var(--ease);}
+.pg-h1 .line.vis{opacity:1;transform:none;}
+.pg-h1 .it{font-style:italic;}
+.pg-h1 .em{color:var(--ember);}
+.pg-h1 .ol{color:transparent;-webkit-text-stroke:1.5px rgba(14,13,11,.2);}
+.pg-hero-foot{padding-top:clamp(28px,4vw,48px);border-top:1px solid rgba(14,13,11,.1);display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between;opacity:0;transform:translateY(16px);transition:opacity .85s .8s var(--ease),transform .85s .8s var(--ease);}
+.pg-hero-foot.vis{opacity:1;transform:none;}
+.pg-hero-desc{font-size:.9rem;font-weight:500;line-height:1.82;color:var(--muted);max-width:52ch;}
+.pg-hero-tags{display:flex;gap:7px;flex-wrap:wrap;}
+.pg-htag{font-size:.52rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:.24rem .8rem;border:1px solid rgba(14,13,11,.14);border-radius:100px;}
+
+/* ── INTRO SPLIT ── */
+.intro-split{padding:var(--sy) var(--px);display:grid;grid-template-columns:1fr;gap:48px;}
+@media(min-width:860px){.intro-split{grid-template-columns:1fr 1fr;gap:80px;align-items:start;}}
+.intro-lead{font-family:'Cormorant Garamond',serif;font-size:clamp(22px,3.2vw,38px);font-weight:400;line-height:1.3;letter-spacing:-.015em;color:var(--ink);}
+.intro-body{font-size:.86rem;font-weight:500;line-height:1.9;color:var(--muted);}
+.intro-body p+p{margin-top:16px;}
+
+/* ── APPROACH STEPS ── */
+.approach{padding:var(--sy) var(--px);background:var(--ink);}
+.approach-hd{margin-bottom:clamp(48px,6vw,72px);}
+.approach-title{font-family:'Cormorant Garamond',serif;font-size:clamp(34px,6vw,76px);font-weight:300;color:var(--bone);line-height:.9;letter-spacing:-.02em;margin-top:12px;}
+.approach-title em{font-style:italic;color:var(--ember);}
+.steps{display:flex;flex-direction:column;}
+.step{display:grid;grid-template-columns:60px 1fr;gap:0;padding:clamp(28px,4vw,48px) 0;border-top:1px solid rgba(244,241,236,.06);position:relative;transition:padding-left .38s var(--ease);}
+.step:last-child{border-bottom:1px solid rgba(244,241,236,.06);}
+.step:hover{padding-left:12px;}
+@media(min-width:860px){.step{grid-template-columns:120px 1fr 1fr;gap:40px;align-items:start;}}
+.step-n{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,4vw,3.5rem);font-weight:300;color:rgba(244,241,236,.1);line-height:1;transition:color .38s;}
+.step:hover .step-n{color:var(--ember);}
+.step-body{padding-left:16px;}
+@media(min-width:860px){.step-body{padding-left:0;}}
+.step-title{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,2.6vw,34px);font-weight:400;color:var(--bone);line-height:1;letter-spacing:-.01em;margin-bottom:10px;transition:color .28s;}
+.step:hover .step-title{color:var(--ember);}
+.step-desc{font-size:.82rem;font-weight:500;line-height:1.85;color:rgba(244,241,236,.32);max-width:42ch;transition:color .38s;}
+.step:hover .step-desc{color:rgba(244,241,236,.5);}
+.step-tags{display:none;}
+@media(min-width:860px){.step-tags{display:flex;flex-wrap:wrap;gap:7px;align-items:flex-start;padding-top:4px;}}
+.step-tag{font-size:.52rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,236,.22);padding:.2rem .68rem;border:1px solid rgba(244,241,236,.08);border-radius:100px;transition:border-color .32s,color .32s;}
+.step:hover .step-tag{border-color:rgba(212,76,39,.28);color:rgba(212,76,39,.65);}
+
+/* ── DELIVERABLES ── */
+.deliverables{padding:var(--sy) var(--px);background:var(--off);}
+.del-grid{display:grid;grid-template-columns:1fr;gap:48px;}
+@media(min-width:860px){.del-grid{grid-template-columns:1fr 1fr;gap:80px;align-items:start;}}
+.del-intro{}
+.del-title{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,4.5vw,56px);font-weight:400;line-height:.92;letter-spacing:-.02em;margin-top:12px;margin-bottom:24px;}
+.del-sub{font-size:.84rem;font-weight:500;line-height:1.85;color:var(--muted);}
+.del-list{display:flex;flex-direction:column;gap:0;border-top:1px solid rgba(14,13,11,.1);}
+.del-item{display:flex;align-items:center;justify-content:space-between;padding:18px 0;border-bottom:1px solid rgba(14,13,11,.07);gap:16px;transition:padding-left .28s var(--ease);}
+.del-item:hover{padding-left:8px;}
+.del-name{font-family:'Cormorant Garamond',serif;font-size:clamp(18px,2.2vw,26px);font-weight:400;letter-spacing:-.01em;}
+.del-icon{width:32px;height:32px;border-radius:50%;border:1px solid rgba(14,13,11,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .28s,border-color .28s,transform .38s var(--spring);}
+.del-item:hover .del-icon{background:var(--ember);border-color:var(--ember);transform:rotate(45deg);}
+.del-icon svg{width:10px;height:10px;stroke:var(--ink);fill:none;transition:stroke .28s;}
+.del-item:hover .del-icon svg{stroke:var(--bone);}
+
+/* ── CASE STUDIES ── */
+.cases{padding:var(--sy) var(--px);background:var(--dark);}
+.cases-hd{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:clamp(36px,5vw,56px);flex-wrap:wrap;gap:16px;border-bottom:1px solid rgba(244,241,236,.06);padding-bottom:clamp(28px,3vw,40px);}
+.cases-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,6vw,72px);font-weight:300;font-style:italic;color:var(--bone);line-height:.9;letter-spacing:-.02em;margin-top:12px;}
+.cases-grid{display:grid;grid-template-columns:1fr;gap:20px;}
+@media(min-width:600px){.cases-grid{grid-template-columns:1fr 1fr;}}
+@media(min-width:1024px){.cases-grid{grid-template-columns:1fr 1fr 1fr;}}
+.cs-card{position:relative;overflow:hidden;background:#0a0908;aspect-ratio:3/4;}
+.cs-card.wide{grid-column:span 2;}
+.cs-img{position:absolute;inset:0;}
+.cs-img img{width:100%;height:100%;object-fit:cover;filter:grayscale(20%) brightness(.58);transition:filter 1s var(--ease),transform 1.1s var(--ease);}
+.cs-card:hover .cs-img img{filter:grayscale(0%) brightness(.75);transform:scale(1.04);}
+.cs-info{position:absolute;bottom:0;left:0;right:0;padding:24px 20px 20px;background:linear-gradient(to top,rgba(14,13,11,.98) 0%,rgba(14,13,11,.55) 55%,transparent 100%);}
+.cs-cat{font-size:.54rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ember);margin-bottom:6px;display:block;}
+.cs-name{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,2.8vw,30px);font-weight:400;color:var(--bone);line-height:.95;letter-spacing:-.02em;margin-bottom:8px;}
+.cs-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;}
+.cs-tag-sm{font-size:.48rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,236,.32);padding:.12rem .5rem;border:1px solid rgba(244,241,236,.1);border-radius:100px;}
+.cs-link{display:inline-flex;align-items:center;gap:6px;font-size:.58rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,236,.5);transition:color .28s;}
+.cs-card:hover .cs-link{color:var(--bone);}
+.cs-link svg{width:9px;height:9px;stroke:currentColor;fill:none;transition:transform .28s;}
+.cs-card:hover .cs-link svg{transform:translate(2px,-2px);}
+
+/* ── WHY US ── */
+.why-panel{padding:var(--sy) var(--px);background:var(--charcoal);}
+.why-grid{display:grid;grid-template-columns:1fr;gap:clamp(40px,6vw,64px);}
+@media(min-width:960px){.why-grid{grid-template-columns:5fr 7fr;gap:80px;}}
+.why-sticky{}
+@media(min-width:960px){.why-sticky{position:sticky;top:96px;}}
+.why-title{font-family:'Cormorant Garamond',serif;font-size:clamp(30px,4.5vw,56px);font-weight:300;font-style:italic;color:var(--bone);line-height:.92;letter-spacing:-.02em;margin-top:12px;margin-bottom:20px;}
+.why-sub{font-size:.84rem;font-weight:500;line-height:1.85;color:rgba(244,241,236,.38);max-width:34ch;}
+.why-nums{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:clamp(28px,4vw,44px);}
+.why-num{padding-left:14px;border-left:2px solid var(--ember);}
+.why-num-n{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,4vw,3rem);font-weight:300;color:var(--bone);display:block;line-height:1;margin-bottom:4px;}
+.why-num-l{font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,236,.28);font-weight:700;}
+.why-rows{border-top:1px solid rgba(244,241,236,.07);}
+.why-row{padding:clamp(18px,2.5vw,28px) 0;border-bottom:1px solid rgba(244,241,236,.07);transition:padding-left .32s var(--ease);}
+.why-row:hover{padding-left:8px;}
+.why-rh{display:flex;justify-content:space-between;align-items:center;gap:12px;}
+.why-rt{font-family:'Cormorant Garamond',serif;font-size:clamp(18px,2.5vw,30px);font-weight:400;color:var(--bone);transition:color .28s;flex:1;}
+.why-row:hover .why-rt{color:var(--ember);}
+.why-rn{font-size:.54rem;letter-spacing:.12em;color:rgba(244,241,236,.2);font-weight:700;flex-shrink:0;}
+.why-rb{font-size:.8rem;font-weight:500;line-height:1.82;color:rgba(244,241,236,.38);max-width:44ch;margin-top:8px;}
+
+/* ── CTA BAND ── */
+.cta-band{padding:clamp(80px,12vw,140px) var(--px);background:var(--bone);text-align:center;position:relative;overflow:hidden;}
+.cta-band-bg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Cormorant Garamond',serif;font-size:clamp(80px,18vw,240px);font-weight:300;color:transparent;-webkit-text-stroke:1px rgba(14,13,11,.04);white-space:nowrap;pointer-events:none;user-select:none;}
+.cta-band-inner{position:relative;z-index:1;}
+.cta-band-title{font-family:'Cormorant Garamond',serif;font-size:clamp(32px,6.5vw,88px);font-weight:300;line-height:.9;letter-spacing:-.025em;margin-top:18px;margin-bottom:18px;}
+.cta-band-title em{font-style:italic;color:var(--ember);}
+.cta-band-sub{font-size:.84rem;font-weight:500;line-height:1.85;color:var(--muted);max-width:46ch;margin:0 auto 36px;}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+
+/* ── SERVICES NAV STRIP ── */
+.srv-strip{padding:clamp(32px,4vw,48px) var(--px);background:var(--bone);border-top:1px solid rgba(14,13,11,.07);}
+.srv-strip-inner{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.srv-strip-label{font-size:.56rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--mid);margin-right:6px;}
+.srv-chip{display:inline-flex;font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:.32rem 1rem;border-radius:100px;border:1px solid rgba(14,13,11,.14);color:var(--muted);transition:background .22s,border-color .22s,color .22s;}
+.srv-chip:hover{background:var(--off);color:var(--ink);}
+.srv-chip.current{background:var(--ink);border-color:var(--ink);color:var(--bone);}
+
+/* FOOTER */
+footer{background:var(--ink);padding:clamp(60px,8vw,80px) var(--px) clamp(28px,4vw,40px);}
+.ft-g{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:clamp(48px,7vw,64px);}
+@media(min-width:960px){.ft-g{grid-template-columns:2fr 1fr 1fr 1fr;}}
+.ft-logo{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:400;color:var(--bone);display:block;margin-bottom:14px;}
+.ft-logo em{font-style:normal;color:var(--ember);}
+.ft-desc{font-size:.78rem;font-weight:500;line-height:1.78;color:rgba(244,241,236,.28);max-width:28ch;margin-bottom:22px;}
+.ft-socs{display:flex;gap:10px;}
+.ft-soc{width:34px;height:34px;border-radius:50%;border:1px solid rgba(244,241,236,.1);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:rgba(244,241,236,.3);transition:border-color .22s,color .22s;}
+.ft-soc:hover{border-color:var(--ember);color:var(--ember);}
+.ft-col h4{font-size:.56rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,241,236,.28);margin-bottom:18px;}
+.ft-col ul{list-style:none;display:flex;flex-direction:column;gap:9px;}
+.ft-col a{font-size:.76rem;font-weight:500;color:rgba(244,241,236,.38);transition:color .2s;}
+.ft-col a:hover{color:var(--bone);}
+.ft-bot{padding-top:22px;border-top:1px solid rgba(244,241,236,.07);display:flex;flex-direction:column;gap:6px;}
+@media(min-width:600px){.ft-bot{flex-direction:row;justify-content:space-between;align-items:center;}}
+.ft-copy,.ft-made{font-size:.68rem;font-weight:500;color:rgba(244,241,236,.18);}
+.ft-made em{font-style:normal;color:var(--ember);}
+
+
+
+/* ── NAV & HERO FIXES ── */
+:root{--nav-h:68px;}
+@media(max-width:767px){:root{--nav-h:60px;}}
+
+/* Fix submenu: bridge gap between link and dropdown so mouse doesn't lose hover */
+.nav-item::after{
+  content:'';position:absolute;
+  top:100%;left:0;right:0;
+  height:20px; /* bridges the gap */
+  background:transparent;
+}
+.nav-drop{
+  top:calc(100% + 1px); /* reduced gap, relies on ::after for bridge */
+}
+/* Ensure dropdown is above everything */
+.nav-item:hover .nav-drop{
+  pointer-events:auto;
+  z-index:600;
+}
+.nav-drop a{
+  pointer-events:auto;
+  cursor:pointer;
+}
+
+/* ── Hero spacing fix: always leave room for fixed nav ── */
+.pg-hero{padding-top:calc(var(--nav-h) + 24px);}
+#hero{padding-top:var(--nav-h);}
+.cs-hero{padding-top:var(--nav-h);}
+.post-layout{padding-top:0;}
+
+/* ── Fix TOC sidebar top offset in case-study ── */
+.post-toc{top:var(--nav-h) !important;height:calc(100vh - var(--nav-h)) !important;}
+
+/* ── "View" label: keep it but move it away from nav area ── */
+#curLbl{
+  position:fixed !important;
+  top:auto !important;
+  pointer-events:none;
+  z-index:9996;
+  font-size:.56rem;
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--ink);
+  background:var(--bone);
+  border:1px solid rgba(14,13,11,.1);
+  padding:.28rem .7rem;
+  border-radius:100px;
+  white-space:nowrap;
+  opacity:0;
+  transform:translate(-50%,14px);
+  transition:opacity .22s,transform .22s;
+}
+#curLbl.vis{opacity:1;transform:translate(-50%,18px);}
+
+</style>
+</head>
+<body>
+<div class="noise" aria-hidden="true"></div>
+<div id="prog" aria-hidden="true"></div>
+<div id="cur3" aria-hidden="true"><div class="c3s"></div></div>
+<div id="curTrail" aria-hidden="true"></div>
+
+
+
+<!-- NAV -->
+<nav id="nav">
+  <a href="index.html" class="logo">DC<em>.</em>ASEL</a>
+  <div class="nav-links">
+    <div class="nav-item">
+      <a href="index.html#services" class="nav-link active">Services
+        <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg>
+      </a>
+      <div class="nav-drop">
+        <a href="brand-identity.html">Brand Identity</a>
+        <a href="web-design.html">Web Design</a>
+        <a href="product-design.html">Product Design</a>
+        <a href="motion-design.html" class="active">Motion Design</a>
+        <a href="creative-direction.html">Creative Direction</a>
+      </div>
+    </div>
+    <a href="index.html#work" class="nav-link">Work</a>
+    <div class="nav-item">
+      <a href="about.html" class="nav-link">Studio
+        <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg>
+      </a>
+      <div class="nav-drop">
+        <a href="about.html">About</a>
+        <div class="drop-div"></div>
+        <a href="process.html">Process</a>
+        <div class="drop-div"></div>
+        <a href="why-dcasel.html">Why Dcasel</a>
+      </div>
+    </div>
+  </div>
+  <a href="index.html#cta" class="nav-cta">Start a Project</a>
+  <button class="ham" id="hamBtn" aria-label="Toggle menu"><span></span><span></span><span></span></button>
+</nav>
+<div class="mob" id="mobMenu">
+  <nav class="mob-links">
+    <a href="index.html#services" class="mm">Services</a>
+    <a href="index.html#work" class="mm">Work</a>
+    <a href="about.html" class="mm">Studio</a>
+    <a href="index.html#cta" class="mm">Contact</a>
+  </nav>
+  <a href="index.html#cta" class="mob-btn mm">Start a Project →</a>
+</div>
+
+
+<!-- HERO -->
+<section class="pg-hero">
+  <div class="pg-hero-grain" aria-hidden="true"></div>
+  <div class="pg-hero-num" aria-hidden="true">04</div>
+  <div class="pg-breadcrumb" id="pgBc">
+    <a href="index.html">Home</a>
+    <span>→</span>
+    <a href="index.html#services">Services</a>
+    <span>→</span>
+    <span>Motion Design</span>
+  </div>
+  <h1 class="pg-h1">
+    <span class="line d1" id="hl1">Motion</span>
+    <span class="line it d2" id="hl2">That</span>
+    <span class="line em d3" id="hl3">Speaks.</span>
+  </h1>
+  <div class="pg-hero-foot" id="pgFoot">
+    <p class="pg-hero-desc">From micro-interactions to full brand films, we use motion to make complex things simple, products feel premium, and brands genuinely unforgettable.</p>
+    <div class="pg-hero-tags"><span class="pg-htag">Animation</span><span class="pg-htag">After Effects</span><span class="pg-htag">Lottie</span><span class="pg-htag">Explainers</span><span class="pg-htag">Brand Films</span><span class="pg-htag">CSS Motion</span></div>
+  </div>
+</section>
+
+<!-- SERVICE NAV STRIP -->
+<div class="srv-strip">
+  <div class="srv-strip-inner">
+    <span class="srv-strip-label">Services</span>
+    <a href="brand-identity.html" class="srv-chip">Brand Identity</a>
+    <a href="web-design.html" class="srv-chip">Web Design</a>
+    <a href="product-design.html" class="srv-chip">Product Design</a>
+    <a href="motion-design.html" class="srv-chipcurrent">Motion Design</a>
+    <a href="creative-direction.html" class="srv-chip">Creative Direction</a>
+  </div>
+</div>
+
+<!-- INTRO -->
+<section class="intro-split">
+  <div class="intro-lead rev">Motion is the language between static and alive. Used with purpose, it communicates faster than words and lingers longer than any still image.</div>
+  <div class="intro-body rev d2"><p>We believe great motion design should feel inevitable — as if the element couldn't possibly move any other way. Every animation is choreographed with intention: timing, easing, and storytelling working in sync.</p><p>We craft motion across the full spectrum — from delicate UI micro-interactions in Lottie to full brand launch films in After Effects. Whether your audience is a user, an investor, or a customer, motion makes the message land harder.</p><p>Our motion work has helped brands launch products, explain complex SaaS platforms in under 60 seconds, and create social content that generates 10x organic reach.</p></div>
+</section>
+
+<!-- APPROACH -->
+<section class="approach">
+  <div class="approach-hd">
+    <div class="sec-tag rev" style="color:rgba(244,241,236,.35)">Our Approach</div>
+    <h2 class="approach-title rev d1">How we bring<br><em>ideas to life</em></h2>
+  </div>
+  <div class="steps">
+    <div class="step rev">
+      <div class="step-n">01</div>
+      <div class="step-body">
+        <h3 class="step-title">Creative Brief</h3>
+        <p class="step-desc">Every great motion piece starts with a clear story. We define the message, the emotion, and the call to action before we open After Effects.</p>
+      </div>
+      <div class="step-tags"><span class="step-tag">Script Writing</span><span class="step-tag">Storyboard</span><span class="step-tag">Creative Brief</span><span class="step-tag">Tone Definition</span></div>
+    </div>
+    <div class="step rev d1">
+      <div class="step-n">02</div>
+      <div class="step-body">
+        <h3 class="step-title">Style Frames</h3>
+        <p class="step-desc">Key frames that define the visual language of the piece. We lock the look before we animate anything.</p>
+      </div>
+      <div class="step-tags"><span class="step-tag">Style Frames</span><span class="step-tag">Moodboard</span><span class="step-tag">Visual Language</span><span class="step-tag">Client Approval</span></div>
+    </div>
+    <div class="step rev d2">
+      <div class="step-n">03</div>
+      <div class="step-body">
+        <h3 class="step-title">Animation Production</h3>
+        <p class="step-desc">Frame-by-frame production in After Effects, Cinema 4D, or CSS/Lottie. We animate with purpose and craft.</p>
+      </div>
+      <div class="step-tags"><span class="step-tag">After Effects</span><span class="step-tag">Lottie</span><span class="step-tag">CSS Animation</span><span class="step-tag">Cinema 4D</span></div>
+    </div>
+    <div class="step rev d3">
+      <div class="step-n">04</div>
+      <div class="step-body">
+        <h3 class="step-title">Delivery & Integration</h3>
+        <p class="step-desc">Export-ready files in every format — MP4, WebM, Lottie JSON, GIF. Integrated into your product or campaign seamlessly.</p>
+      </div>
+      <div class="step-tags"><span class="step-tag">Multi-format Export</span><span class="step-tag">Lottie Integration</span><span class="step-tag">Web Optimisation</span><span class="step-tag">Social Formats</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- DELIVERABLES -->
+<section class="deliverables">
+  <div class="del-grid">
+    <div class="del-intro rev">
+      <div class="sec-tag">What you get</div>
+      <h2 class="del-title">Motion assets<br>your audience <em>remembers.</em></h2>
+      <p class="del-sub">Every file is export-optimised for its intended platform — web, social, or broadcast.</p>
+    </div>
+    <div class="del-list rev d2">
+      <div class="del-item">
+        <span class="del-name">Brand Animation & Intro</span>
+        <div class="del-icon"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="del-item">
+        <span class="del-name">Product Demo Video</span>
+        <div class="del-icon"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="del-item">
+        <span class="del-name">Lottie Micro-interactions</span>
+        <div class="del-icon"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="del-item">
+        <span class="del-name">Explainer Video (60-90s)</span>
+        <div class="del-icon"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="del-item">
+        <span class="del-name">Social Motion Templates</span>
+        <div class="del-icon"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="del-item">
+        <span class="del-name">Loading & Transition Animations</span>
+        <div class="del-icon"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="del-item">
+        <span class="del-name">Source Files (After Effects)</span>
+        <div class="del-icon"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CASE STUDIES -->
+<section class="cases">
+  <div class="cases-hd">
+    <div>
+      <div class="sec-tag rev" style="color:rgba(244,241,236,.35)">Selected Work</div>
+      <h2 class="cases-title rev d1">Motion Design<br>Case Studies</h2>
+    </div>
+  </div>
+  <div class="cases-grid">
+    <div class="cs-card wide rev">
+      <div class="cs-img"><img src="https://images.unsplash.com/photo-1609921212029-bb5a28e60960?q=80&w=1400&auto=format&fit=crop" alt="Vertex Brand Launch Film" loading="lazy"></div>
+      <div class="cs-info">
+        <span class="cs-cat">Motion · 2024</span>
+        <h3 class="cs-name">Vertex Brand Launch Film</h3>
+        <div class="cs-tags"><span class="cs-tag-sm">Brand Film</span><span class="cs-tag-sm">After Effects</span></div>
+        <span class="cs-link">View Case Study <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </div>
+    </div>
+    <div class="cs-card rev d1">
+      <div class="cs-img"><img src="https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=900&auto=format&fit=crop" alt="Bloom Product Demo" loading="lazy"></div>
+      <div class="cs-info">
+        <span class="cs-cat">Motion · 2023</span>
+        <h3 class="cs-name">Bloom Product Demo</h3>
+        <div class="cs-tags"><span class="cs-tag-sm">Explainer</span><span class="cs-tag-sm">Lottie</span></div>
+        <span class="cs-link">View Case Study <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </div>
+    </div>
+    <div class="cs-card rev d2">
+      <div class="cs-img"><img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=900&auto=format&fit=crop" alt="Horizon Micro-interactions" loading="lazy"></div>
+      <div class="cs-info">
+        <span class="cs-cat">UI Motion · 2024</span>
+        <h3 class="cs-name">Horizon Micro-interactions</h3>
+        <div class="cs-tags"><span class="cs-tag-sm">UI</span><span class="cs-tag-sm">CSS Motion</span></div>
+        <span class="cs-link">View Case Study <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY DCASEL -->
+<section class="why-panel">
+  <div class="why-grid">
+    <div class="why-sticky">
+      <div class="sec-tag rev" style="color:rgba(244,241,236,.35)">Why us</div>
+      <h2 class="why-title rev d1">Why Dcasel<br>for Motion <em>Design?</em></h2>
+      <p class="why-sub rev d2">Motion craft that goes beyond bouncing logos — storytelling that drives real business outcomes.</p>
+      <div class="why-nums rev d3">
+        <div class="why-num"><span class="why-num-n">80+</span><span class="why-num-l">Motion Projects</span></div>
+        <div class="why-num"><span class="why-num-n">10×</span><span class="why-num-l">Avg. Social Reach Lift</span></div>
+      </div>
+    </div>
+    <div class="why-rows">
+      <div class="why-row rev"><div class="why-rh"><h3 class="why-rt">Story Before Style</h3><span class="why-rn">01</span></div><p class="why-rb">We don't animate for animation's sake. Every motion piece has a clear narrative arc and a purpose.</p></div>
+      <div class="why-row rev d1"><div class="why-rh"><h3 class="why-rt">Craft in Every Frame</h3><span class="why-rn">02</span></div><p class="why-rb">We sweat the easing curves, the timing, the micro-details. The difference between good motion and great motion lives in the milliseconds.</p></div>
+      <div class="why-row rev d2"><div class="why-rh"><h3 class="why-rt">Platform-Native Delivery</h3><span class="why-rn">03</span></div><p class="why-rb">We know how motion behaves on every platform — social feeds, web apps, broadcasts. We optimise for each.</p></div>
+      <div class="why-row rev d3"><div class="why-rh"><h3 class="why-rt">Brand-Consistent Always</h3><span class="why-rn">04</span></div><p class="why-rb">Motion is an extension of your brand. We design animation languages that feel unmistakably like you.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-band">
+  <div class="cta-band-bg" aria-hidden="true">Motion</div>
+  <div class="cta-band-inner">
+    <div class="sec-tag rev" style="justify-content:center">Ready to begin?</div>
+    <h2 class="cta-band-title rev d1">Let's bring your brand<br>to <em>life.</em></h2>
+    <p class="cta-band-sub rev d2">Tell us about your project. First consultation is always free.</p>
+    <div class="cta-btns rev d3">
+      <a href="index.html#cta" class="btn-p">Start a Project <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <a href="index.html#work" class="btn-o">See our work first</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="ft-g">
+    <div>
+      <a href="index.html" class="ft-logo">DC<em>.</em>ASEL</a>
+      <p class="ft-desc">A boutique design studio crafting remarkable brand identities and digital experiences since 2016.</p>
+      <div class="ft-socs">
+        <a href="#" class="ft-soc" aria-label="LinkedIn">Li</a>
+        <a href="#" class="ft-soc" aria-label="Instagram">Ig</a>
+        <a href="#" class="ft-soc" aria-label="Dribbble">Dr</a>
+        <a href="#" class="ft-soc" aria-label="Behance">Bé</a>
+      </div>
+    </div>
+    <div class="ft-col"><h4>Services</h4><ul>
+      <li><a href="brand-identity.html">Brand Identity</a></li>
+      <li><a href="web-design.html">Web Design</a></li>
+      <li><a href="product-design.html">Product Design</a></li>
+      <li><a href="motion-design.html">Motion Design</a></li>
+      <li><a href="creative-direction.html">Creative Direction</a></li>
+    </ul></div>
+    <div class="ft-col"><h4>Studio</h4><ul>
+      <li><a href="about.html">About</a></li>
+      <li><a href="process.html">Process</a></li>
+      <li><a href="why-dcasel.html">Why Dcasel</a></li>
+      <li><a href="index.html#work">Case Studies</a></li>
+    </ul></div>
+    <div class="ft-col"><h4>Contact</h4><ul>
+      <li><a href="mailto:hello@dcasel.com">hello@dcasel.com</a></li>
+      <li><a href="#">Bengaluru, India</a></li>
+      <li><a href="index.html#cta">Start a Project</a></li>
+    </ul></div>
+  </div>
+  <div class="ft-bot">
+    <span class="ft-copy">© 2025 Dcasel Creative Pvt. Ltd.</span>
+    <span class="ft-made">Crafted with care in <em>Bengaluru</em></span>
+  </div>
+</footer>
+
+
+<script>
+(function(){
+const $$=(s,el=document)=>[...el.querySelectorAll(s)];
+const isPtr=window.matchMedia('(pointer:fine)').matches;
+
+// Cursor
+if(isPtr){
+  const cur=document.getElementById('cur3');
+  const trail=document.getElementById('curTrail');
+  let mx=0,my=0,cx=0,cy=0,tx=0,ty=0;
+  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+  (function tick(){
+    cx+=(mx-cx)*.18;cy+=(my-cy)*.18;
+    tx+=(mx-tx)*.08;ty+=(my-ty)*.08;
+    cur.style.left=cx+'px';cur.style.top=cy+'px';
+    trail.style.left=tx+'px';trail.style.top=ty+'px';
+    const dx=mx-cx,dy=my-cy;
+    cur.style.transform=`translate(-50%,-50%) rotateX(${Math.max(-16,Math.min(16,dy*.28))}deg) rotateY(${Math.max(-16,Math.min(16,-dx*.28))}deg)`;
+    requestAnimationFrame(tick);
+  })();
+  $$('a,button').forEach(el=>{
+    el.addEventListener('mouseenter',()=>cur.classList.add('hov'));
+    el.addEventListener('mouseleave',()=>cur.classList.remove('hov'));
+  });
+}
+
+// Progress
+const prog=document.getElementById('prog');
+window.addEventListener('scroll',()=>{prog.style.transform=`scaleX(${window.scrollY/(document.body.scrollHeight-window.innerHeight)||0})`;},{passive:true});
+
+// Nav
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>nav.classList.toggle('stuck',window.scrollY>30),{passive:true});
+
+// Hamburger
+const hamBtn=document.getElementById('hamBtn');
+const mob=document.getElementById('mobMenu');
+hamBtn.addEventListener('click',()=>{const o=mob.classList.toggle('open');hamBtn.classList.toggle('open',o);document.body.style.overflow=o?'hidden':'';});
+$$('.mm').forEach(a=>a.addEventListener('click',()=>{mob.classList.remove('open');hamBtn.classList.remove('open');document.body.style.overflow='';}));
+
+// Hero reveal
+setTimeout(()=>{
+  document.getElementById('pgBc')?.classList.add('vis');
+  ['hl1','hl2','hl3'].forEach((id,i)=>setTimeout(()=>document.getElementById(id)?.classList.add('vis'),300+i*150));
+  setTimeout(()=>document.getElementById('pgFoot')?.classList.add('vis'),900);
+},80);
+
+// Scroll reveal
+const ro=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');ro.unobserve(e.target);}});},{threshold:.07,rootMargin:'0px 0px -36px 0px'});
+$$('.rev').forEach(el=>ro.observe(el));
+})();
+
+
+/* ── Submenu: ensure click works (pointer-events fix) ── */
+(function(){
+  document.querySelectorAll('.nav-item').forEach(item=>{
+    const drop = item.querySelector('.nav-drop');
+    if(!drop) return;
+    // Keep dropdown open while moving between link and dropdown
+    let leaveTimer;
+    item.addEventListener('mouseenter',()=>clearTimeout(leaveTimer));
+    item.addEventListener('mouseleave',()=>{
+      leaveTimer = setTimeout(()=>{
+        drop.style.pointerEvents='none';
+        drop.style.opacity='0';
+        drop.style.transform='translateX(-50%) translateY(-8px)';
+      }, 120);
+    });
+    drop.addEventListener('mouseenter',()=>{
+      clearTimeout(leaveTimer);
+      drop.style.pointerEvents='auto';
+      drop.style.opacity='1';
+      drop.style.transform='translateX(-50%) translateY(0)';
+    });
+    drop.addEventListener('mouseleave',()=>{
+      leaveTimer = setTimeout(()=>{
+        drop.style.pointerEvents='none';
+        drop.style.opacity='0';
+        drop.style.transform='translateX(-50%) translateY(-8px)';
+      }, 80);
+    });
+    // click on the parent link area — toggle for touch
+    const link = item.querySelector('.nav-link');
+    if(link){
+      link.addEventListener('click',e=>{
+        // if has dropdown and click is on the link (not on an anchor inside drop)
+        // do nothing — let default navigate. But prevent default only if href="#"
+        if(link.getAttribute('href')==='#' || !link.getAttribute('href')){
+          e.preventDefault();
+        }
+      });
+    }
+  });
+})();
+
+</script>
+</body>
+</html>
